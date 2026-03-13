@@ -1,0 +1,19 @@
+Section B: File &amp; Directory Operations
+
+1. Create a file named student.txt.
+2. Create a directory called data.
+3. Copy student.txt inside data.
+4. Rename student.txt to info.txt.
+5. Delete the file info.txt.
+6. Remove the data directory using:
+○ rmdir
+○ rm -rf
+
+
+
+Ans 1. touch student.txt
+Ans 2. mkdir data
+Ans 3. cp student.txt data/
+Ans 4. mv student.txt info.txt
+Ans 5. rm info.txt
+Ans 6. rm -rf data

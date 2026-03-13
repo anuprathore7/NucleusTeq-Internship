@@ -1,0 +1,16 @@
+Section A: Navigation (Practical)
+1. Create a directory named linux_practice.
+2. Go inside that directory.
+3. Create another directory called test_folder.
+4. Move back to the parent directory.
+5. Display your current working directory.
+6. List all files and directories.
+7. Find help for the ls command.
+
+Ans 1.  mkdir linux_practice
+Ans 2.  cd linux_practice
+Ans 3.  mkdir test_folder
+Ans 4.  cd ..
+Ans 5.  pwd
+Ans 6.  ls 
+Ans 7.  ls --help
