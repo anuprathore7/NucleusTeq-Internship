@@ -1,2 +1,2 @@
 # NucleusTeq-Internship
-My internship learning at Nucleus Stack
+My internship learning at NucleusTeq
