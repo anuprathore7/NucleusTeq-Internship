@@ -132,6 +132,7 @@
       <!-- Line to separate next section -->
       <hr />
     </section>
+    
     <!-- This section shows my projects -->
     <section id="projects">
       <h2>Projects</h2>
@@ -168,6 +169,70 @@
           </article>
         </li>
       </ol>
+      <hr />
+    </section>
+
+    <!-- This section is for contacting me -->
+    <section id="contact">
+      <h2>Contact Me</h2>
+
+      <!-- Form starts here -->
+      <form>
+        <!-- Name input -->
+        <label for="name">Name:</label><br />
+        <input type="text" id="name" name="name" />
+
+        <br /><br />
+
+        <!-- Email input -->
+        <label for="email">Email:</label><br />
+        <input type="email" id="email" name="email" />
+
+        <br /><br />
+
+        <!-- I have used radio button for selecting the gender -->
+        <p>Gender:</p>
+
+        <!-- I used radio so user can select only one -->
+        <input type="radio" id="male" name="gender" />
+        <label for="male">Male</label>
+
+        <input type="radio" id="female" name="gender" />
+        <label for="female">Female</label>
+
+        <br /><br />
+
+        <p>Skills Interested In:</p>
+
+        <!-- Checkbox allows multiple selections -->
+        <input type="checkbox" id="frontend" name="skills" />
+        <label for="frontend">Frontend</label>
+
+        <input type="checkbox" id="backend" name="skills" />
+        <label for="backend">Backend</label>
+
+        <br /><br />
+
+        <!--I used dropdown for country -->
+        <label for="country">Country:</label><br />
+        <select id="country">
+          <option>India</option>
+          <option>USA</option>
+          <option>UK</option>
+        </select>
+
+        <br /><br />
+
+        <!-- Message box -->
+        <label for="message">Message:</label><br />
+        <textarea id="message" name="message"></textarea>
+
+        <br /><br />
+
+        <!-- Buttons -->
+        <input type="submit" value="Submit" />
+        <input type="reset" value="Reset" />
+      </form>
       <hr />
     </section>
   </body>
