@@ -1,0 +1,17 @@
+/* I am using this to remove default spacing from browser */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+
+body {
+  /*These are my font family if segoe UI will not work then sans-serif will be applied*/
+  font-family: "Segoe UI", sans-serif;
+  /* It is a background color of my project*/
+  background-color: #f5f5f5;
+  /* this is the text color*/
+  color: #333333;
+  padding : 20px;
+}
