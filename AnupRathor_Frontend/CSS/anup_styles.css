@@ -147,3 +147,19 @@ section {
 section h2 {
   margin-bottom: 10px;
 }
+
+
+/*Styling Skills section*/
+#skills ul li {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+/* improving readability of nested lists */
+#skills ul ul {
+    margin-left: 30px;
+    /*it pushing inner list a bit right so that UI will look more better */
+    line-height: 1.6;
+    /* it gives proper spacing between lines */
+}
+
