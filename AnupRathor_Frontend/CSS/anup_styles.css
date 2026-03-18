@@ -5,7 +5,6 @@
   box-sizing: border-box;
 }
 
-
 body {
   /*These are my font family if segoe UI will not work then sans-serif will be applied*/
   font-family: "Segoe UI", sans-serif;
@@ -13,38 +12,121 @@ body {
   background-color: #f5f5f5;
   /* this is the text color*/
   color: #333333;
-  padding : 20px;
+  padding: 20px;
 }
 
 /* Styling for the header section */
 header {
-    text-align: center;
-    /* I centered everything to make it look like a proper profile section */
-    margin-bottom: 20px;
-    /* space below header */
+  text-align: center;
+  /* I centered everything to make it look like a proper profile section */
+  margin-bottom: 20px;
+  /* space below header */
 }
 
 /* it is for styling the image */
 header img {
-    width: 150px;
-    height: 150px;
-    /* these are the height and width of image*/
-    border-radius: 50%;
-    /*it will make image circular */
-    margin-top: 10px;
-    border: 3px solid #111;
-
+  width: 150px;
+  height: 150px;
+  /* these are the height and width of image*/
+  border-radius: 50%;
+  /*it will make image circular */
+  margin-top: 10px;
+  border: 3px solid #111;
 }
 
 /* Styling headings */
 header h1 {
-    font-size: 28px;
-    /* it will increase my font size of name  */
+  font-size: 28px;
+  /* it will increase my font size of name  */
 }
 
 header h2 {
-    font-size: 18px;
-    font-weight: normal;
-    
+  font-size: 18px;
+  font-weight: normal;
 }
+
+/* giving space below navigation */
+nav {
+  margin-bottom: 100px;
+}
+
+/* main menu in one line */
+nav ul {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  gap: 30px; 
+}
+
+/* each Navbar item  */
+nav ul li {
+  position: relative;
+  font-weight: bold; /*using this font will bi bold*/
+}
+
+/* main links */
+nav a {
+  text-decoration: none;
+  color: #333;
+
+  padding: 8px 15px;
+  border-radius: 20px; /* rounded look */
+
+  transition: 0.3s;
+  /* smooth hover effect */
+}
+
+/* hover effect */
+nav a:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+/* dropdown menu */
+nav ul li ul {
+  display: none;
+
+  position: absolute;
+  top: 120%; 
+  left: 0;
+
+  flex-direction: column;
+
+  background-color: #ffffff;
+  border-radius: 10px; /* rounded dropdown */
+
+  padding: 8px 0;
+
+  min-width: 140px;
+
+  /* small shadow for better look */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* show dropdown */
+nav ul li:hover ul {
+  display: flex;
+}
+
+/* dropdown items */
+nav ul li ul li {
+  width: 100%;
+
+  white-space: nowrap;
+  /* it prevents text from breaking into 2 lines */
+}
+
+/* dropdown links */
+nav ul li ul a {
+  padding: 8px 12px;
+  border-radius: 0;
+}
+
+/* hover inside dropdown */
+nav ul li ul a:hover {
+  background-color: #333;
+  color: #eee;
+  border-radius: 20px;
+}
+
 
