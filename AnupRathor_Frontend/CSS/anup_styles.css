@@ -169,9 +169,8 @@ table {
   /* it removes double borders */
 }
 
-/* styling table cells */
-th,
-td {
+/* styling table section */
+th,td {
   border: 1px solid #ccc;
 
   padding: 10px;
@@ -191,4 +190,41 @@ th {
 /* alternate row color */
 tr:nth-child(even) {
   background-color: #f2f2f2;
+}
+
+
+
+/* styling project section */
+#projects article {
+    padding: 10px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 8px;
+
+    transition: 0.3s;
+    /*it provides smooth hover effect */
+}
+
+/* it is used for adding space between projects */
+#projects li {
+    margin-bottom: 15px;
+    /* gives gap between projects */
+}
+
+/* hover effect on project */
+#projects article:hover {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    /* it gives shadow effect */
+}
+
+/*it is used for styling project links */
+#projects a {
+    color: #0077cc;
+    text-decoration: none;
+}
+
+/* whenever we hover on link then a line will bw added at bottom*/
+#projects a:hover {
+    text-decoration: underline;
 }
