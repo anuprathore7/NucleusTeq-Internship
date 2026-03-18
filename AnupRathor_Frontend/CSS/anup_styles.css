@@ -170,7 +170,8 @@ table {
 }
 
 /* styling table section */
-th,td {
+th,
+td {
   border: 1px solid #ccc;
 
   padding: 10px;
@@ -192,56 +193,54 @@ tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
-
-
 /* styling project section */
 #projects article {
-    padding: 10px;
+  padding: 10px;
 
-    border: 1px solid #ddd;
+  border: 1px solid #ddd;
 
-    border-radius: 8px;
+  border-radius: 8px;
 
-    transition: 0.3s;
-    /*it provides smooth hover effect */
+  transition: 0.3s;
+  /*it provides smooth hover effect */
 }
 
 /* it is used for adding space between projects */
 #projects li {
-    margin-bottom: 15px;
-    /* gives gap between projects */
+  margin-bottom: 15px;
+  /* gives gap between projects */
 }
 
 /* hover effect on project */
 #projects article:hover {
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    /* it gives shadow effect */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  /* it gives shadow effect */
 }
 
 /*it is used for styling project links */
 #projects a {
-    color: #0077cc;
-    text-decoration: none;
+  color: #0077cc;
+  text-decoration: none;
 }
 
 /* whenever we hover on link then a line will bw added at bottom*/
 #projects a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 /*contact form styling*/
 
 /* I set a max width so the form does not stretch too wide on large screens*/
 form {
-    max-width: 420px;
+  max-width: 420px;
 }
 
 /* I used display block here so that every label appears on its own separate line*/
 form label {
-    display: block;
-    margin-bottom: 4px;
-    font-weight: 600;
-    color: #333;
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: #333;
 }
 
 /* I am styling all text inputs, email input, textarea and select dropdown together
@@ -250,87 +249,117 @@ form input[type="text"],
 form input[type="email"],
 form textarea,
 form select {
-    display: block;           /* makes each field appear on its own line */
-    width: 100%;              
-    padding: 8px 10px;        /* adds space inside the box so text is not touching the edges */
-    margin-bottom: 6px;      
-    border: 1px solid #ccc;   /* light grey border to outline each input box */
-    border-radius: 6px;       
-    font-size: 14px;          
-    color: #333;              
-    background-color: #fafafa; 
+  display: block; /* makes each field appear on its own line */
+  width: 100%;
+  padding: 8px 10px; /* adds space inside the box so text is not touching the edges */
+  margin-bottom: 6px;
+  border: 1px solid #ccc; /* light grey border to outline each input box */
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  background-color: #fafafa;
 }
 
 /*i give a bit more height to textarea */
 form textarea {
-    height: 100px;
-    resize: vertical;
+  height: 100px;
+  resize: vertical;
 }
 
 /* Paragraph labels like "Gender:" and "Skills Interested In:" */
 form p {
-    font-weight: 600;
-    margin-bottom: 6px;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 /* it will put radio and checkbox beside text */
 form input[type="radio"],
 form input[type="checkbox"] {
-    margin-right: 5px;
-    margin-top: 5px;
-    vertical-align: middle;
-    cursor: pointer;
+  margin-right: 5px;
+  margin-top: 5px;
+  vertical-align: middle;
+  cursor: pointer;
 }
 
 /* Labels next to radio/checkbox should not be block */
 form input[type="radio"] + label,
 form input[type="checkbox"] + label {
-    display: inline;
-    font-weight: normal;
-    margin-right: 15px;
+  display: inline;
+  font-weight: normal;
+  margin-right: 15px;
 }
 
 /* i provide Small gap after the radio/checkbox group ends */
 form br + br {
-    display: block;
-    margin-bottom: 10px;
+  display: block;
+  margin-bottom: 10px;
 }
 
 /* Submit button */
 form input[type="submit"] {
-    display: inline-block;
-    width: auto;
-    padding: 8px 20px;
-    background-color: #333;
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: 0.3s;
+  display: inline-block;
+  width: auto;
+  padding: 8px 20px;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-bottom: 20px;
 }
 
 /* Submit button hover effect */
 form input[type="submit"]:hover {
-    background-color: #555;
+  background-color: #555;
 }
 
 /* Reset button */
 form input[type="reset"] {
-    display: inline-block;
-    width: auto;
-    padding: 8px 20px;
-    background-color: #eee;
-    color: #333;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: 0.3s;
-    margin-left: 10px;
+  display: inline-block;
+  width: auto;
+  padding: 8px 20px;
+  background-color: #eee;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-left: 10px;
 }
 
 /* Reset button hover */
 form input[type="reset"]:hover {
-    background-color: #ccc;
+  background-color: #ccc;
+}
+
+/*footer section styling*/
+/* text-align centers all footer content horizontally,
+   background-color gives it a dark bar so it looks separate from the rest of the page */
+footer {
+  text-align: center;
+  background-color: #333;
+  color: #fff;
+  padding: 20px;
+  margin-top: 30px;
+  border-radius: 10px;
+}
+
+footer p {
+  font-size: 13px;
+  margin-bottom: 6px; /* small gap between copyright line and links line */
+}
+
+/* Links styled white to stay visible on the dark footer background */
+footer a {
+  color: #fff;
+  text-decoration: none;
+  margin: 0 5px; /*it will create spacing between LinkedIn and GitHub links */
+}
+
+/* Underline appears on hover so user knows the link is clickable */
+footer a:hover {
+  text-decoration: underline;
 }
