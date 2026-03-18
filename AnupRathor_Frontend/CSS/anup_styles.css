@@ -129,4 +129,21 @@ nav ul li ul a:hover {
   border-radius: 20px;
 }
 
+/*I have used this for section styling*/
+section {
+  background-color: #ffffff;
 
+  padding: 20px;
+
+  margin-bottom: 20px;
+  /* space between sections */
+
+  border-radius: 10px;
+  /* rounded corners */
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* light shadow for showing depth */
+}
+section h2 {
+  margin-bottom: 10px;
+}
