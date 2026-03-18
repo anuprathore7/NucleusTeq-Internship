@@ -55,7 +55,7 @@ nav ul {
   display: flex;
   justify-content: center;
   list-style: none;
-  gap: 30px; 
+  gap: 30px;
 }
 
 /* each Navbar item  */
@@ -87,7 +87,7 @@ nav ul li ul {
   display: none;
 
   position: absolute;
-  top: 120%; 
+  top: 120%;
   left: 0;
 
   flex-direction: column;
@@ -148,18 +148,47 @@ section h2 {
   margin-bottom: 10px;
 }
 
-
 /*Styling Skills section*/
 #skills ul li {
-    margin-bottom: 8px;
-    font-weight: 600;
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 
 /* improving readability of nested lists */
 #skills ul ul {
-    margin-left: 30px;
-    /*it pushing inner list a bit right so that UI will look more better */
-    line-height: 1.6;
-    /* it gives proper spacing between lines */
+  margin-left: 30px;
+  /*it pushing inner list a bit right so that UI will look more better */
+  line-height: 1.6;
+  /* it gives proper spacing between lines */
 }
 
+/* it will make table full width */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  /* it removes double borders */
+}
+
+/* styling table cells */
+th,
+td {
+  border: 1px solid #ccc;
+
+  padding: 10px;
+  /* it gives space inside cells */
+
+  text-align: center;
+  /* keeps content aligned */
+}
+
+/* header row styling */
+th {
+  background-color: #333;
+  color: #fff;
+  /* makes header stand out */
+}
+
+/* alternate row color */
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
