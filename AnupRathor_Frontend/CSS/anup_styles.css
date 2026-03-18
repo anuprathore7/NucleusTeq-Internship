@@ -228,3 +228,109 @@ tr:nth-child(even) {
 #projects a:hover {
     text-decoration: underline;
 }
+
+/*contact form styling*/
+
+/* I set a max width so the form does not stretch too wide on large screens*/
+form {
+    max-width: 420px;
+}
+
+/* I used display block here so that every label appears on its own separate line*/
+form label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* I am styling all text inputs, email input, textarea and select dropdown together
+   so they all look the same and the form feels consistent throughout */
+form input[type="text"],
+form input[type="email"],
+form textarea,
+form select {
+    display: block;           /* makes each field appear on its own line */
+    width: 100%;              
+    padding: 8px 10px;        /* adds space inside the box so text is not touching the edges */
+    margin-bottom: 6px;      
+    border: 1px solid #ccc;   /* light grey border to outline each input box */
+    border-radius: 6px;       
+    font-size: 14px;          
+    color: #333;              
+    background-color: #fafafa; 
+}
+
+/*i give a bit more height to textarea */
+form textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+/* Paragraph labels like "Gender:" and "Skills Interested In:" */
+form p {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* it will put radio and checkbox beside text */
+form input[type="radio"],
+form input[type="checkbox"] {
+    margin-right: 5px;
+    margin-top: 5px;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/* Labels next to radio/checkbox should not be block */
+form input[type="radio"] + label,
+form input[type="checkbox"] + label {
+    display: inline;
+    font-weight: normal;
+    margin-right: 15px;
+}
+
+/* i provide Small gap after the radio/checkbox group ends */
+form br + br {
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* Submit button */
+form input[type="submit"] {
+    display: inline-block;
+    width: auto;
+    padding: 8px 20px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Submit button hover effect */
+form input[type="submit"]:hover {
+    background-color: #555;
+}
+
+/* Reset button */
+form input[type="reset"] {
+    display: inline-block;
+    width: auto;
+    padding: 8px 20px;
+    background-color: #eee;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-left: 10px;
+}
+
+/* Reset button hover */
+form input[type="reset"]:hover {
+    background-color: #ccc;
+}
