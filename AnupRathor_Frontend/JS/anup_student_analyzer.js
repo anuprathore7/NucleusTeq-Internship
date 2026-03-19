@@ -45,3 +45,14 @@ students.forEach(student => {
     // `` this is the template literals inside this we can put our string as well as data 
   console.log(`${student.name} Total Marks: ${getTotalMarks(student)}`);
 });
+
+//it is function to calculate average marks
+function getAverage(student) {
+  const total = getTotalMarks(student);
+  return total / student.marks.length;
+}
+
+// it displays average marks
+students.forEach(student => {
+  console.log(`${student.name} Average: ${getAverage(student).toFixed(1)}`);
+});
