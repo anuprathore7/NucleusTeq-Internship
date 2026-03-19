@@ -27,3 +27,21 @@ const students = [
 ];
 
 console.log(students , "Student data loaded");
+
+// it is function to calculate total marks
+function getTotalMarks(student) {
+  let total = 0;
+
+  // i have used for each to iterate each student score of every subject.
+  student.marks.forEach(mark => {
+    total += mark.score;
+  });
+
+  return total;
+}
+
+// it is going to display total marks
+students.forEach(student => {
+    // `` this is the template literals inside this we can put our string as well as data 
+  console.log(`${student.name} Total Marks: ${getTotalMarks(student)}`);
+});
