@@ -56,3 +56,25 @@ function getAverage(student) {
 students.forEach(student => {
   console.log(`${student.name} Average: ${getAverage(student).toFixed(1)}`);
 });
+
+
+//it is getting all subjects dynamically
+const subjects = students[0].marks.map(sub => sub.subject);
+
+console.log("Subject Toppers");
+
+subjects.forEach(subject => {
+  let highest = 0;
+  let topper = "";
+
+  students.forEach(student => {
+    const sub = student.marks.find(s => s.subject === subject);
+
+    if (sub.score > highest) {
+      highest = sub.score;
+      topper = student.name;
+    }
+  });
+
+  console.log(`Highest in ${subject}: ${topper} (${highest})`);
+});
