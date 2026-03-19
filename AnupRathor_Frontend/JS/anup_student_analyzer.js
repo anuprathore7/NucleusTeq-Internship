@@ -110,3 +110,31 @@ students.forEach(student => {
 
 console.log(" Class Topper");
 console.log(`Topper: ${topper} with ${highestMarks} marks`);
+
+
+// function to calculate grade
+function getGrade(student) {
+  const avg = getAverage(student);
+
+  // Check if any student failed in any subject
+  let failedSubject = student.marks.find(sub => sub.score <= 40);
+
+  if (failedSubject) {
+    return `Fail (Failed in ${failedSubject.subject})`;
+  }
+
+  // Check attendance
+  if (student.attendance < 75) {
+    return "Fail (Low Attendance)";
+  }
+
+  // Grade logic
+  if (avg >= 85) return "A";
+  if (avg >= 70) return "B";
+  if (avg >= 50) return "C";
+  return "Fail";
+}
+
+students.forEach(student => {
+  console.log(`${student.name} Grade: ${getGrade(student)}`);
+});
