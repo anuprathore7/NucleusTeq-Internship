@@ -94,3 +94,19 @@ subjects.forEach(subject => {
 
   console.log(`Average ${subject}: ${avg}`);
 });
+
+// here we are going to find topper of the class
+let topper = "";
+let highestMarks = 0;
+
+students.forEach(student => {
+  const total = getTotalMarks(student);
+
+  if (total > highestMarks) {
+    highestMarks = total;
+    topper = student.name;
+  }
+});
+
+console.log(" Class Topper");
+console.log(`Topper: ${topper} with ${highestMarks} marks`);
