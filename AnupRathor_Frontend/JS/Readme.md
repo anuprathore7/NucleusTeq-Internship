@@ -17,3 +17,7 @@ This screenshot shows Average marks calculated for each student.
 ### 4. Subject-wise Highest Score
 This screenshot shows which student scored highest in each subject.
 ![Highest Score](<Console_Outputs/Highest score subject-wise output.png>)
+
+### 5. Subject Averages
+This screenshot shows what are the averages of subjects
+![Subject Averages](<Console_Outputs/Subject Averages output.png>)

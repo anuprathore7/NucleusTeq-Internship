@@ -78,3 +78,19 @@ subjects.forEach(subject => {
 
   console.log(`Highest in ${subject}: ${topper} (${highest})`);
 });
+
+// I am going to find subject averages in this.
+console.log(" Subject Averages ");
+
+subjects.forEach(subject => {
+  let total = 0;
+
+  students.forEach(student => {
+    const sub = student.marks.find(s => s.subject === subject);
+    total += sub.score;
+  });
+
+  const avg = total / students.length;
+
+  console.log(`Average ${subject}: ${avg}`);
+});
