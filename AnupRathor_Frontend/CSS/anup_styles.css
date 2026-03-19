@@ -363,3 +363,65 @@ footer a {
 footer a:hover {
   text-decoration: underline;
 }
+
+/* RESPONSIVE DESIGN  */
+
+/* This media query triggers when screen width is 768px or below (tablets and phones)
+   Everything inside this block overrides the desktop styles for smaller screens */
+@media (max-width: 768px) {
+  nav ul {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  nav ul li ul {
+    position: static;
+    box-shadow: none;
+  }
+
+  header h1 {
+    font-size: 22px;
+  }
+
+  header h2 {
+    font-size: 15px;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  form {
+    max-width: 100%;
+  }
+
+  nav {
+    margin-bottom: 30px;
+  }
+}
+
+/* For very small phones like 480px and below */
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+
+  header img {
+    width: 110px;
+    height: 110px;
+  }
+
+  section {
+    padding: 14px;
+  }
+
+  form input[type="submit"],
+  form input[type="reset"] {
+    display: block;
+    width: 100%;
+    margin-left: 0;
+    margin-bottom: 8px;
+  }
+}
