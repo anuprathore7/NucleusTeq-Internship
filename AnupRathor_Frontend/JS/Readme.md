@@ -18,6 +18,14 @@ This screenshot shows Average marks calculated for each student.
 This screenshot shows which student scored highest in each subject.
 ![Highest Score](<Console_Outputs/Highest score subject-wise output.png>)
 
-### 5. Subject Averages
+### 5. Subject-wise Averages
 This screenshot shows what are the averages of subjects
 ![Subject Averages](<Console_Outputs/Subject Averages output.png>)
+
+### 6. Class Topper
+This screenshot shows the topper of the class .
+![class Topper](<Console_Outputs/Class topper output.png>)
+
+### 7. Grades Logic
+This screenshot shows whose student failed but in my case no one student failed.
+![Grades](<Console_Outputs/Grades output.png>)
