@@ -1,0 +1,237 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── LOADING OVERLAY ── */
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: #131921;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease;
+}
+#loading-overlay.gone {
+  opacity: 0;
+  pointer-events: none;
+}
+.loader-box {
+  text-align: center;
+}
+.spinner {
+  width: 46px;
+  height: 46px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #febd69;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  margin: 0 auto 18px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.loader-text {
+  color: #ccc;
+  font-size: 13px;
+  margin-bottom: 14px;
+  letter-spacing: 0.04em;
+}
+.progress-bar {
+  width: 220px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #febd69;
+  border-radius: 2px;
+  transition: width 0.07s linear;
+}
+
+:root {
+  --nav-bg: #131921;
+  --strip-bg: #232f3e;
+  --strip-active: #febd69;
+  --srch-btn: #febd69;
+  --srch-btn-h: #f3a847;
+  --page-bg: #f3f3f3;
+  --card-bg: #ffffff;
+  --border: #e0e0e0;
+  --border2: #cccccc;
+  --text: #111;
+  --text2: #555;
+  --text3: #888;
+  --accent: #ff9900;
+  --accent-h: #e88a00;
+  --elec: #0066c0;
+  --elec-bg: #e8f0fe;
+  --cloth: #7c3aed;
+  --cloth-bg: #f3effe;
+  --books: #b45309;
+  --books-bg: #fef3e2;
+  --accs: #0e7a6e;
+  --accs-bg: #e6f6f4;
+  --danger: #c0392b;
+  --danger-bg: #fdecea;
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --ok: #16a34a;
+  --ok-bg: #f0fdf4;
+  --topbar-h: 68px;
+  --strip-h: 42px;
+  --offset: calc(68px + 42px);
+}
+.topbar {
+  background: var(--nav-bg);
+  height: var(--topbar-h);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+.logo-mark {
+  font-size: 20px;
+  color: var(--srch-btn);
+}
+.logo-words {
+  display: flex;
+  flex-direction: column;
+}
+.logo-main {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+.logo-sub {
+  font-size: 10px;
+  color: var(--srch-btn);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.topbar-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  max-width: 820px;
+  height: 42px;
+  border: 2px solid transparent;
+  transition: border-color 0.18s;
+}
+.topbar-search:focus-within {
+  border-color: var(--srch-btn);
+}
+.search-cat {
+  background: #e8e8e8;
+  border: none;
+  outline: none;
+  font-family: "Sora", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 0 10px;
+  height: 100%;
+  cursor: pointer;
+  border-right: 1px solid #ccc;
+  flex-shrink: 0;
+}
+.search-sep {
+  width: 1px;
+  height: 60%;
+  background: #ddd;
+  flex-shrink: 0;
+}
+.search-field {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: "Sora", sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  padding: 0 14px;
+  height: 100%;
+  background: transparent;
+}
+.search-field::placeholder {
+  color: #aaa;
+}
+.search-btn {
+  background: var(--srch-btn);
+  border: none;
+  cursor: pointer;
+  padding: 0 18px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.search-btn:hover {
+  background: var(--srch-btn-h);
+}
+.search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--nav-bg);
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.topbar-divider {
+  width: 1px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.15);
+}
+.topbar-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ts-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.ts-num.danger {
+  color: #ff6b6b;
+}
+.ts-num.warn {
+  color: var(--srch-btn);
+}
+.ts-lbl {
+  font-size: 10px;
+  color: #ccc;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

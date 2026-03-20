@@ -1,26 +1,95 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Product Inventory Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <!-- It will apply Sora font from google -->
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css" />
-</head>
-<body>
-
-  <!-- LOADING OVERLAY -->
-  <div id="loading-overlay">
-    <div class="loader-box">
-      <div class="spinner"></div>
-      <p class="loader-text" id="loader-text">Fetching products from API...</p>
-      <div class="progress-bar">
-        <div class="progress-fill" id="prog-fill"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product Inventory Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!-- It will apply Sora font from google -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay">
+      <div class="loader-box">
+        <div class="spinner"></div>
+        <p class="loader-text" id="loader-text">
+          Fetching products from API...
+        </p>
+        <div class="progress-bar">
+          <div class="progress-fill" id="prog-fill"></div>
+        </div>
       </div>
     </div>
-  </div>
+    <!-- TOP NAVIGATION BAR (Amazon / Flipkart style) -->
+    <header class="topbar">
+      <div class="topbar-logo">
+        <div class="logo-mark">&#9632;</div>
+        <div class="logo-words">
+          <span class="logo-main">Product Inventory</span>
+          <span class="logo-sub">Dashboard</span>
+        </div>
+      </div>
 
-</body>
+      <!-- Wide search bar -->
+      <div class="topbar-search">
+        <select id="search-cat-filter" class="search-cat" onchange="onFilter()">
+          <option value="all">All Categories</option>
+          <option value="electronics">Electronics</option>
+          <option value="clothing">Clothing</option>
+          <option value="books">Books</option>
+          <option value="accessories">Accessories</option>
+        </select>
+        <div class="search-sep"></div>
+        <input
+          type="text"
+          id="search-input"
+          class="search-field"
+          placeholder="Search for products, categories..."
+          oninput="onFilter()"
+        />
+        <button class="search-btn" onclick="onFilter()" aria-label="Search">
+          <svg class="search-icon" viewBox="0 0 20 20" fill="none">
+            <circle
+              cx="8.5"
+              cy="8.5"
+              r="5.5"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M13 13L17 17"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Live stats on the right -->
+      <div class="topbar-right">
+        <div class="topbar-stat">
+          <span class="ts-num" id="header-count">0</span>
+          <span class="ts-lbl">Total Items</span>
+        </div>
+        <div class="topbar-divider"></div>
+        <div class="topbar-stat">
+          <span class="ts-num warn" id="header-low">0</span>
+          <span class="ts-lbl">Low Stock</span>
+        </div>
+        <div class="topbar-divider"></div>
+        <div class="topbar-stat">
+          <span class="ts-num danger" id="header-out">0</span>
+          <span class="ts-lbl">Out of Stock</span>
+        </div>
+      </div>
+    </header>
+
+    <script src="js/script.js"></script>
+  </body>
 </html>
