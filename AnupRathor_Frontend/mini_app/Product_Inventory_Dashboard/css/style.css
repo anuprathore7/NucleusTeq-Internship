@@ -464,3 +464,50 @@ body {
   gap: 0;
   padding-left: 18px;
 }
+
+.tab-bar {
+  display: flex;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+  border-bottom: none;
+}
+.tab-btn {
+  flex: 1;
+  background: var(--card-bg);
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text2);
+  font-family: "Sora", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.tab-btn:hover {
+  background: var(--page-bg);
+  color: var(--text);
+}
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: #fff;
+  font-weight: 700;
+}
+.tab-panel {
+  display: none;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 20px;
+}
+.tab-panel.active {
+  display: block;
+}
