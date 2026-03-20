@@ -258,3 +258,46 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+.cat-strip {
+  background: var(--strip-bg);
+  height: var(--strip-h);
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  overflow-x: auto;
+}
+.cat-strip::-webkit-scrollbar {
+  display: none;
+}
+.cat-strip-inner {
+  display: flex;
+  gap: 4px;
+}
+.csb {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #ddd;
+  font-family: "Sora", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.csb:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.csb.active {
+  color: #131921;
+  background: var(--strip-active);
+  border-color: var(--strip-active);
+  font-weight: 700;
+}
