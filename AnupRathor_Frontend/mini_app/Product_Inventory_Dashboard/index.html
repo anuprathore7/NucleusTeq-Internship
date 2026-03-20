@@ -90,7 +90,7 @@
         </div>
       </div>
     </header>
-    
+
     <nav class="cat-strip">
       <div class="cat-strip-inner">
         <button class="csb active" id="cs-all" onclick="setCategory('all')">
@@ -118,6 +118,58 @@
         </button>
       </div>
     </nav>
+    <div class="page-body">
+      <aside class="sidebar">
+        <div class="sb-block">
+          <h3 class="sb-heading">Sort By</h3>
+          <select id="sort-sel" class="sb-select" onchange="onFilter()">
+            <option value="def">Default Order</option>
+            <option value="pa">Price: Low to High</option>
+            <option value="pd">Price: High to Low</option>
+            <option value="az">Name: A to Z</option>
+            <option value="za">Name: Z to A</option>
+          </select>
+        </div>
+
+        <div class="sb-block">
+          <h3 class="sb-heading">Stock Filter</h3>
+          <div class="low-toggle" id="low-tog" onclick="toggleLow()">
+            <span>Low stock only (&lt; 5)</span>
+            <div class="tog-track"></div>
+          </div>
+        </div>
+
+        <hr class="sb-divider" />
+
+        <div class="sb-block">
+          <h3 class="sb-heading">Quick Stats</h3>
+          <div class="sb-stats">
+            <div class="sb-stat-row">
+              <span class="sb-stat-lbl">Total Products</span>
+              <span class="sb-stat-val" id="sb-total">0</span>
+            </div>
+            <div class="sb-stat-row">
+              <span class="sb-stat-lbl">Inventory Value</span>
+              <span class="sb-stat-val green" id="sb-value">&#8377;0</span>
+            </div>
+            <div class="sb-stat-row">
+              <span class="sb-stat-lbl">Out of Stock</span>
+              <span class="sb-stat-val red" id="sb-out">0</span>
+            </div>
+            <div class="sb-stat-row">
+              <span class="sb-stat-lbl">Low Stock</span>
+              <span class="sb-stat-val orange" id="sb-low">0</span>
+            </div>
+          </div>
+          <button class="sb-analytics-btn" onclick="switchTab('analytics')">
+            &#128200; View Full Analytics
+          </button>
+        </div>
+      </aside>
+
+      <!-- main area comes in next commit -->
+      <main class="main-area"></main>
+    </div>
 
     <script src="js/script.js"></script>
   </body>
