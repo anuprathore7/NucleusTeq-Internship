@@ -299,6 +299,121 @@ function animateProgress(pct) {
   const el = document.getElementById("prog-fill");
   if (el) el.style.width = pct + "%";
 }
+/* ================================================
+   5. REAL API FETCH
+   Uses fetch() — built-in browser HTTP function.
+   async/await makes it easy to read and write.
+   ================================================ */
+async function fetchProductsFromAPI() {
+  /* First check localStorage — no need to call API again */
+  const saved = loadFromStorage();
+  if (saved && saved.length > 0) {
+    setLoaderText("Loading from saved data...");
+    animateProgress(100);
+    console.log("Loaded", saved.length, "products from localStorage");
+    return saved;
+  }
+
+  /* localStorage empty — fetch from real API */
+  try {
+    setLoaderText("Connecting to dummyjson API...");
+    animateProgress(20);
+
+    /* fetch() sends a GET request — await waits for response */
+    const response = await fetch("https://dummyjson.com/products?limit=100");
+
+    animateProgress(55);
+    setLoaderText("Parsing JSON response...");
+
+    if (!response.ok) throw new Error("API error: " + response.status);
+
+    /* .json() reads and parses the response body */
+    const data = await response.json();
+
+    animateProgress(80);
+    setLoaderText("Mapping to inventory format...");
+
+    const apiProducts = mapAPIProducts(data.products.slice(0, 40));
+
+    animateProgress(100);
+    setLoaderText("Ready!");
+
+    console.log("API fetched:", apiProducts.length, "products");
+    return [...apiProducts, ...DEFAULT_PRODUCTS];
+  } catch (err) {
+    /* If fetch fails — always fall back, never crash */
+    console.warn("API failed, using fallback:", err.message);
+    setLoaderText("Using offline data...");
+    animateProgress(100);
+    return DEFAULT_PRODUCTS;
+  }
+}
+
+/* ================================================
+   6. MAP API PRODUCTS
+   Convert dummyjson format to our format.
+   Price: USD × 83 = INR
+   Category: remap their names to our 4 categories
+   ================================================ */
+function mapAPIProducts(items) {
+  const catMap = {
+    smartphones: "electronics",
+    laptops: "electronics",
+    tablets: "electronics",
+    "mobile-accessories": "electronics",
+    "mens-shirts": "clothing",
+    "womens-dresses": "clothing",
+    "mens-shoes": "clothing",
+    "womens-shoes": "clothing",
+    tops: "clothing",
+    sunglasses: "accessories",
+    "sports-accessories": "accessories",
+    "skin-care": "accessories",
+    fragrances: "accessories",
+    "home-decoration": "accessories",
+    beauty: "accessories",
+  };
+
+  return items.map((item, i) => ({
+    id: 8000 + i,
+    name: item.title,
+    price: Math.round(item.price * 83),
+    stock: item.stock,
+    category: catMap[item.category] || "accessories",
+  }));
+}
+
+
+function onFilter() {
+  console.log("Filter triggered — logic coming in next commit");
+}
+
+/* 
+   8. INIT — THE ENTRY POINT OF THE APP
+
+   This is the function that starts EVERYTHING. Without calling init() at the bottom, the page just loads HTML and does nothing at all. */
+async function init() {
+  console.log("--- App starting ---");
+
+  /* Fetch products from API or localStorage or fallback */
+  allProducts = await fetchProductsFromAPI();
+
+  /* Save to localStorage for next visit */
+  saveToStorage();
+
+  /* Hide the loading spinner */
+  const overlay = document.getElementById("loading-overlay");
+  overlay.classList.add("gone");
+  setTimeout(() => {
+    overlay.style.display = "none";
+  }, 500);
+
+  console.log("--- App ready ---");
+  console.log("Total products:", allProducts.length);
+ 
+}
+
+init();
 
 /* loading overlay test */
 window.addEventListener("load", () => {
