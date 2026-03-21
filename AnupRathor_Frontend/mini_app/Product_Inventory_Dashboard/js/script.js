@@ -1,4 +1,8 @@
 let allProducts = [];
+let currentPage = 1;
+let currentCat = "all";
+let lowStockOnly = false;
+const PER_PAGE = 8;
 
 const DEFAULT_PRODUCTS = [
   /* Electronics — 10 items */
@@ -382,12 +386,6 @@ function mapAPIProducts(items) {
     category: catMap[item.category] || "accessories",
   }));
 }
-
-
-function onFilter() {
-  console.log("Filter triggered — logic coming in next commit");
-}
-
 /* 
    8. INIT — THE ENTRY POINT OF THE APP
 
@@ -400,6 +398,8 @@ async function init() {
 
   /* Save to localStorage for next visit */
   saveToStorage();
+  updateStats();
+  renderProducts();
 
   /* Hide the loading spinner */
   const overlay = document.getElementById("loading-overlay");
@@ -410,25 +410,136 @@ async function init() {
 
   console.log("--- App ready ---");
   console.log("Total products:", allProducts.length);
- 
 }
-
+function updateStats() {
+  const total = allProducts.length;
+  const value = allProducts.reduce((s, p) => s + p.price * p.stock, 0);
+  const out = allProducts.filter((p) => p.stock === 0).length;
+  const low = allProducts.filter((p) => p.stock > 0 && p.stock < 5).length;
+  document.getElementById("sb-total").textContent = total;
+  document.getElementById("sb-value").textContent =
+    value >= 100000
+      ? (value / 100000).toFixed(1) + "L"
+      : "\u20B9" + Math.round(value).toLocaleString("en-IN");
+  document.getElementById("sb-out").textContent = out;
+  document.getElementById("sb-low").textContent = low;
+  document.getElementById("header-count").textContent = total;
+  document.getElementById("header-low").textContent = low;
+  document.getElementById("header-out").textContent = out;
+}
 init();
 
-/* loading overlay test */
-window.addEventListener("load", () => {
-  const overlay = document.getElementById("loading-overlay");
-  setTimeout(() => {
-    overlay.classList.add("gone");
-  }, 1500);
-});
+function fmt(n) {
+  return "\u20B9" + Math.round(n).toLocaleString("en-IN");
+}
 
-function setCategory(cat) {
-  document
-    .querySelectorAll(".csb")
-    .forEach((b) => b.classList.remove("active"));
-  const btn = document.getElementById("cs-" + cat);
-  if (btn) btn.classList.add("active");
+function catBadgeClass(c) {
+  return (
+    {
+      electronics: "cat-electronics",
+      clothing: "cat-clothing",
+      books: "cat-books",
+      accessories: "cat-accessories",
+    }[c] || "cat-accessories"
+  );
+}
+
+function stripeClass(c) {
+  return (
+    {
+      electronics: "stripe-electronics",
+      clothing: "stripe-clothing",
+      books: "stripe-books",
+      accessories: "stripe-accessories",
+    }[c] || "stripe-accessories"
+  );
+}
+
+function stockBadge(s) {
+  if (s === 0) return `<span class="stock-badge b-out">Out of Stock</span>`;
+  if (s < 5) return `<span class="stock-badge b-low">Low Stock</span>`;
+  return `<span class="stock-badge b-ok">In Stock</span>`;
+}
+function getFiltered() {
+  const query = document
+    .getElementById("search-input")
+    .value.trim()
+    .toLowerCase();
+  const sort = document.getElementById("sort-sel").value;
+  let list = [...allProducts];
+  if (query) list = list.filter((p) => p.name.toLowerCase().includes(query));
+  if (currentCat !== "all")
+    list = list.filter((p) => p.category === currentCat);
+  if (lowStockOnly) list = list.filter((p) => p.stock < 5);
+  if (sort === "pa") list.sort((a, b) => a.price - b.price);
+  if (sort === "pd") list.sort((a, b) => b.price - a.price);
+  if (sort === "az") list.sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === "za") list.sort((a, b) => b.name.localeCompare(a.name));
+  return list;
+}
+/* renderProducts — builds card HTML for the current page and injects it */
+function renderProducts() {
+  const filtered = getFiltered();
+  const total = filtered.length;
+  document.getElementById("item-count").textContent =
+    total + " item" + (total !== 1 ? "s" : "");
+  const titles = {
+    all: "All Products",
+    electronics: "Electronics",
+    clothing: "Clothing",
+    books: "Books",
+    accessories: "Accessories",
+  };
+  document.getElementById("toolbar-title").textContent =
+    titles[currentCat] || "Products";
+  const grid = document.getElementById("product-grid");
+  const empty = document.getElementById("empty-state");
+  const pg = document.getElementById("pagination");
+  if (total === 0) {
+    grid.innerHTML = "";
+    empty.style.display = "block";
+    pg.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  const start = (currentPage - 1) * PER_PAGE;
+  const slice = filtered.slice(start, start + PER_PAGE);
+  grid.innerHTML = slice
+    .map(
+      (p) => `
+    <div class="product-card">
+      <div class="card-stripe ${stripeClass(p.category)}"></div>
+      <span class="cat-badge ${catBadgeClass(p.category)}">${p.category}</span>
+      <p class="card-name">${p.name}</p>
+      <p class="card-price">${fmt(p.price)}</p>
+      <div class="card-footer">
+        <span class="card-stock">${p.stock} units &nbsp;${stockBadge(p.stock)}</span>
+        <button class="btn-del" onclick="deleteProduct(${p.id})">Delete</button>
+      </div>
+    </div>`,
+    )
+    .join("");
+  renderPagination(total);
+}
+function renderPagination(total) {
+  const pg = document.getElementById("pagination");
+  const pages = Math.ceil(total / PER_PAGE);
+  if (pages <= 1) {
+    pg.innerHTML = "";
+    return;
+  }
+  let h = `<button class="pg-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>&larr; Prev</button>`;
+  for (let i = 1; i <= pages; i++) {
+    h += `<button class="pg-btn ${i === currentPage ? "active" : ""}" onclick="goPage(${i})">${i}</button>`;
+  }
+  h += `<button class="pg-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages ? "disabled" : ""}>Next &rarr;</button>`;
+  pg.innerHTML = h;
+}
+
+function goPage(n) {
+  currentPage = n;
+  renderProducts();
+  document.querySelector(".main-area").scrollIntoView({ behavior: "smooth" });
 }
 
 /* Tab switching — hides all panels, shows the chosen one */
@@ -453,6 +564,7 @@ function setCategory(cat) {
     .forEach((b) => b.classList.remove("active"));
   const btn = document.getElementById("cs-" + cat);
   if (btn) btn.classList.add("active");
+  renderProducts();
 }
 
 function toggleLow() {
@@ -460,6 +572,7 @@ function toggleLow() {
   currentPage = 1;
   const el = document.getElementById("low-tog");
   lowStockOnly ? el.classList.add("on") : el.classList.remove("on");
+  renderProducts();
 }
 
 function onFilter() {
@@ -471,6 +584,7 @@ function onFilter() {
     .forEach((b) => b.classList.remove("active"));
   const btn = document.getElementById("cs-" + catDrop);
   if (btn) btn.classList.add("active");
+  renderProducts();
 }
 
 function renderAnalytics() {}

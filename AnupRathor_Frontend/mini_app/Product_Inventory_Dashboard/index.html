@@ -167,28 +167,49 @@
         </div>
       </aside>
 
-      
       <main class="main-area">
- 
-      <div class="tab-bar">
-        <button class="tab-btn active" id="tab-products"  onclick="switchTab('products')">&#128230; Products List</button>
-        <button class="tab-btn"        id="tab-add"       onclick="switchTab('add')">&#10133; Add Product</button>
-        <button class="tab-btn"        id="tab-analytics" onclick="switchTab('analytics')">&#128200; Analytics</button>
-      </div>
- 
-      <div class="tab-panel active" id="panel-products">
-        <p>Products will go here</p>
-      </div>
- 
-      <div class="tab-panel" id="panel-add">
-        <p>Add form will go here</p>
-      </div>
- 
-      <div class="tab-panel" id="panel-analytics">
-        <p>Analytics will go here</p>
-      </div>
- 
-    </main>
+        <div class="tab-bar">
+          <button
+            class="tab-btn active"
+            id="tab-products"
+            onclick="switchTab('products')"
+          >
+            &#128230; Products List
+          </button>
+          <button class="tab-btn" id="tab-add" onclick="switchTab('add')">
+            &#10133; Add Product
+          </button>
+          <button
+            class="tab-btn"
+            id="tab-analytics"
+            onclick="switchTab('analytics')"
+          >
+            &#128200; Analytics
+          </button>
+        </div>
+
+        <div class="tab-panel active" id="panel-products">
+          <div class="toolbar">
+            <h2 class="toolbar-title" id="toolbar-title">All Products</h2>
+            <span class="item-count" id="item-count">Loading...</span>
+          </div>
+          <div class="product-grid" id="product-grid"></div>
+          <div class="empty-state" id="empty-state" style="display: none">
+            <div class="empty-icon">&#9711;</div>
+            <p>No products found</p>
+            <small>Try a different search term or clear filters</small>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+
+        <div class="tab-panel" id="panel-add">
+          <p>Add form will go here</p>
+        </div>
+
+        <div class="tab-panel" id="panel-analytics">
+          <p>Analytics will go here</p>
+        </div>
+      </main>
     </div>
 
     <script src="js/script.js"></script>
