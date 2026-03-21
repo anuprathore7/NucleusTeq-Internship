@@ -642,6 +642,54 @@ function resetForm() {
   document.getElementById("success-flash").style.display = "none";
 }
 
-function renderAnalytics() {}
+function renderAnalytics() {
+  const total    = allProducts.length;
+  const value    = allProducts.reduce((s,p)=>s+p.price*p.stock,0);
+  const avg      = total>0 ? allProducts.reduce((s,p)=>s+p.price,0)/total : 0;
+  const cats     = new Set(allProducts.map(p=>p.category)).size;
+  const outCount = allProducts.filter(p=>p.stock===0).length;
+  const lowCount = allProducts.filter(p=>p.stock>0&&p.stock<5).length;
+  const inCount  = allProducts.filter(p=>p.stock>=5).length;
+ 
+  document.getElementById("an-total").textContent = total;
+  document.getElementById("an-value").textContent = value>=10000000?(value/10000000).toFixed(1)+" Cr":value>=100000?(value/100000).toFixed(1)+" L":fmt(value);
+  document.getElementById("an-avg").textContent   = fmt(avg);
+  document.getElementById("an-cats").textContent  = cats;
+  document.getElementById("an-out").textContent   = outCount;
+  document.getElementById("an-low").textContent   = lowCount;
+  document.getElementById("an-updated").textContent = new Date().toLocaleTimeString("en-IN");
+ 
+  const catMeta = {
+    electronics:{ icon:"&#128187;", label:"Electronics", cls:"cb-elec"  },
+    clothing:   { icon:"&#128248;", label:"Clothing",    cls:"cb-cloth" },
+    books:      { icon:"&#128218;", label:"Books",       cls:"cb-books" },
+    accessories:{ icon:"&#9201;",   label:"Accessories", cls:"cb-accs"  },
+  };
+  document.getElementById("cat-breakdown").innerHTML =
+    Object.entries(catMeta).map(([cat,m]) => {
+      const items = allProducts.filter(p=>p.category===cat);
+      const val   = items.reduce((s,p)=>s+p.price*p.stock,0);
+      return `<div class="cb-card ${m.cls}"><div class="cb-icon">${m.icon}</div><div><div class="cb-name">${m.label}</div><div class="cb-meta">${items.length} products</div></div><div class="cb-right"><div class="cb-val">${fmt(val)}</div><div class="cb-sub">total value</div></div></div>`;
+    }).join("");
+ 
+  const t = total || 1;
+  document.getElementById("health-rows").innerHTML = `
+    <div class="health-row"><div class="health-dot dot-green"></div><span class="health-lbl">In Stock (5+)</span><span class="health-val">${inCount}</span><div class="health-bar-wrap"><div class="health-bar bar-green" style="width:${(inCount/t*100).toFixed(1)}%"></div></div></div>
+    <div class="health-row"><div class="health-dot dot-yellow"></div><span class="health-lbl">Low Stock (1–4)</span><span class="health-val">${lowCount}</span><div class="health-bar-wrap"><div class="health-bar bar-yellow" style="width:${(lowCount/t*100).toFixed(1)}%"></div></div></div>
+    <div class="health-row"><div class="health-dot dot-red"></div><span class="health-lbl">Out of Stock</span><span class="health-val">${outCount}</span><div class="health-bar-wrap"><div class="health-bar bar-red" style="width:${(outCount/t*100).toFixed(1)}%"></div></div></div>`;
+ 
+  const okDeg  = (inCount  / t) * 360;
+  const lowDeg = (lowCount / t) * 360;
+  document.getElementById("donut-chart").style.background = `conic-gradient(#16a34a 0deg ${okDeg}deg, #d97706 ${okDeg}deg ${okDeg+lowDeg}deg, #dc2626 ${okDeg+lowDeg}deg 360deg)`;
+  document.getElementById("donut-num").textContent = total;
+ 
+  const catList   = ["electronics","clothing","books","accessories"];
+  const barColors = { electronics:"bar-elec", clothing:"bar-cloth", books:"bar-books", accessories:"bar-accs" };
+  const barLabels = { electronics:"&#128187; Electronics", clothing:"&#128248; Clothing", books:"&#128218; Books", accessories:"&#9201; Accessories" };
+  const counts    = catList.map(c => allProducts.filter(p=>p.category===c).length);
+  const maxC      = Math.max(...counts, 1);
+  document.getElementById("bar-chart").innerHTML =
+    catList.map((cat,i) => `<div class="bar-group"><div class="bar-val">${counts[i]}</div><div class="bar-col-wrap"><div class="bar-col ${barColors[cat]}" style="height:${(counts[i]/maxC*100).toFixed(1)}%"></div></div><div class="bar-lbl">${barLabels[cat]}</div></div>`).join("");
+}
 
 
