@@ -293,7 +293,112 @@
         </div>
 
         <div class="tab-panel" id="panel-analytics">
-          <p>Analytics will go here</p>
+          <div class="an-page-header">
+            <div>
+              <h2 class="an-page-title">&#128200; Inventory Analytics</h2>
+              <p class="an-page-sub">
+                Live overview — refreshes whenever you add or delete a product.
+              </p>
+            </div>
+            <div class="an-last-updated">
+              Updated: <span id="an-updated">—</span>
+            </div>
+          </div>
+          <div class="kpi-grid">
+            <div class="kpi-card kpi-blue">
+              <div class="kpi-icon">&#128230;</div>
+              <div class="kpi-body">
+                <p class="kpi-val" id="an-total">0</p>
+                <p class="kpi-lbl">Total Products</p>
+                <p class="kpi-trend">All items in inventory</p>
+              </div>
+            </div>
+            <div class="kpi-card kpi-green">
+              <div class="kpi-icon">&#128181;</div>
+              <div class="kpi-body">
+                <p class="kpi-val" id="an-value">&#8377;0</p>
+                <p class="kpi-lbl">Inventory Value</p>
+                <p class="kpi-trend">Price &times; Stock (total)</p>
+              </div>
+            </div>
+            <div class="kpi-card kpi-orange">
+              <div class="kpi-icon">&#128184;</div>
+              <div class="kpi-body">
+                <p class="kpi-val" id="an-avg">&#8377;0</p>
+                <p class="kpi-lbl">Avg. Product Price</p>
+                <p class="kpi-trend">Across all categories</p>
+              </div>
+            </div>
+            <div class="kpi-card kpi-purple">
+              <div class="kpi-icon">&#128202;</div>
+              <div class="kpi-body">
+                <p class="kpi-val" id="an-cats">4</p>
+                <p class="kpi-lbl">Active Categories</p>
+                <p class="kpi-trend">
+                  Electronics · Clothing · Books · Accessories
+                </p>
+              </div>
+            </div>
+            <div class="kpi-card kpi-red">
+              <div class="kpi-icon">&#128683;</div>
+              <div class="kpi-body">
+                <p class="kpi-val" id="an-out">0</p>
+                <p class="kpi-lbl">Out of Stock</p>
+                <p class="kpi-trend">Stock = 0 items</p>
+              </div>
+            </div>
+            <div class="kpi-card kpi-yellow">
+              <div class="kpi-icon">&#9888;</div>
+              <div class="kpi-body">
+                <p class="kpi-val" id="an-low">0</p>
+                <p class="kpi-lbl">Low Stock Alert</p>
+                <p class="kpi-trend">Stock between 1 and 4</p>
+              </div>
+            </div>
+          </div>
+          <div class="an-two-col">
+            <div class="an-section">
+              <h3 class="an-section-title">Category Breakdown</h3>
+              <p class="an-section-sub">
+                Products and total value per category
+              </p>
+              <div id="cat-breakdown"></div>
+            </div>
+            <div class="an-section">
+              <h3 class="an-section-title">Stock Health</h3>
+              <p class="an-section-sub">Overview of current stock levels</p>
+              <div class="health-rows" id="health-rows"></div>
+              <div class="donut-wrap">
+                <div class="donut" id="donut-chart">
+                  <div class="donut-center">
+                    <p class="donut-num" id="donut-num">0</p>
+                    <p class="donut-lbl">Total</p>
+                  </div>
+                </div>
+                <div class="donut-legend">
+                  <div class="dl-row">
+                    <span class="dl-dot" style="background: #16a34a"></span>In
+                    Stock (5+)
+                  </div>
+                  <div class="dl-row">
+                    <span class="dl-dot" style="background: #d97706"></span>Low
+                    Stock (1–4)
+                  </div>
+                  <div class="dl-row">
+                    <span class="dl-dot" style="background: #dc2626"></span>Out
+                    of Stock
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="an-section">
+            <h3 class="an-section-title">&#128202; Products per Category</h3>
+            <p class="an-section-sub">
+              Number of distinct products in each category
+            </p>
+            <div class="bar-chart-wrap" id="bar-chart"></div>
+          </div>
         </div>
       </main>
     </div>
