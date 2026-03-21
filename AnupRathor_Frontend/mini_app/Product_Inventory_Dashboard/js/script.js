@@ -595,6 +595,52 @@ function deleteProduct(id) {
   updateStats();
   renderProducts();
 }
+function showErr(errId, fgId, msg) {
+  document.getElementById(errId).textContent = msg;
+  document.getElementById(fgId)?.classList.add("has-err");
+}
+function clearErrs() {
+  ["e-name","e-price","e-stock","e-cat"].forEach(id => { document.getElementById(id).textContent = ""; });
+  ["fg-name","fg-price","fg-stock","fg-cat"].forEach(id => { document.getElementById(id)?.classList.remove("has-err"); });
+}
+ 
+function addProduct() {
+  const name  = document.getElementById("f-name").value.trim();
+  const price = parseFloat(document.getElementById("f-price").value);
+  const stock = parseInt(document.getElementById("f-stock").value, 10);
+  const cat   = document.getElementById("f-cat").value;
+  clearErrs();
+  let valid = true;
+  if (!name)                      { showErr("e-name",  "fg-name",  "Name is required.");   valid=false; }
+  if (isNaN(price) || price <= 0) { showErr("e-price", "fg-price", "Price must be > 0.");  valid=false; }
+  if (document.getElementById("f-stock").value===""||isNaN(stock)||stock<0)
+                                  { showErr("e-stock", "fg-stock", "Cannot be negative."); valid=false; }
+  if (!cat)                       { showErr("e-cat",   "fg-cat",   "Please select one.");  valid=false; }
+  if (!valid) return;
+  allProducts.unshift({ id:Date.now(), name, price, stock, category:cat });
+  saveToStorage();
+  currentPage=1; currentCat="all"; lowStockOnly=false;
+  document.getElementById("search-input").value      = "";
+  document.getElementById("search-cat-filter").value = "all";
+  document.getElementById("sort-sel").value          = "def";
+  document.getElementById("low-tog").classList.remove("on");
+  document.querySelectorAll(".csb").forEach(b=>b.classList.remove("active"));
+  document.getElementById("cs-all")?.classList.add("active");
+  document.getElementById("f-name").value=""; document.getElementById("f-price").value="";
+  document.getElementById("f-stock").value=""; document.getElementById("f-cat").value="";
+  clearErrs();
+  updateStats(); renderProducts();
+  const flash = document.getElementById("success-flash");
+  flash.style.display = "flex";
+  setTimeout(() => { flash.style.display = "none"; }, 4000);
+}
+ 
+function resetForm() {
+  document.getElementById("f-name").value=""; document.getElementById("f-price").value="";
+  document.getElementById("f-stock").value=""; document.getElementById("f-cat").value="";
+  clearErrs();
+  document.getElementById("success-flash").style.display = "none";
+}
 
 function renderAnalytics() {}
 

@@ -203,7 +203,93 @@
         </div>
 
         <div class="tab-panel" id="panel-add">
-          <p>Add form will go here</p>
+          <div class="add-form-wrap">
+            <div class="add-form-header">
+              <h2>&#10133; Add New Product</h2>
+              <p>
+                Fill in the details below to add a new product to your
+                inventory.
+              </p>
+            </div>
+            <div class="add-form-card">
+              <div class="fg full-width" id="fg-name">
+                <label for="f-name"
+                  >Product Name <span class="req">*</span></label
+                >
+                <input
+                  type="text"
+                  id="f-name"
+                  placeholder="e.g. Wireless Bluetooth Speaker"
+                />
+                <small class="ferr" id="e-name"></small>
+              </div>
+              <div class="form-row-2">
+                <div class="fg" id="fg-price">
+                  <label for="f-price"
+                    >Price (&#8377;) <span class="req">*</span></label
+                  >
+                  <input
+                    type="number"
+                    id="f-price"
+                    min="1"
+                    placeholder="e.g. 1299"
+                  />
+                  <small class="ferr" id="e-price"></small>
+                </div>
+                <div class="fg" id="fg-stock">
+                  <label for="f-stock"
+                    >Stock Quantity <span class="req">*</span></label
+                  >
+                  <input
+                    type="number"
+                    id="f-stock"
+                    min="0"
+                    placeholder="e.g. 25"
+                  />
+                  <small class="ferr" id="e-stock"></small>
+                </div>
+              </div>
+              <div class="fg full-width" id="fg-cat">
+                <label for="f-cat">Category <span class="req">*</span></label>
+                <select id="f-cat">
+                  <option value="">-- Select a Category --</option>
+                  <option value="electronics">&#128187; Electronics</option>
+                  <option value="clothing">&#128248; Clothing</option>
+                  <option value="books">&#128218; Books</option>
+                  <option value="accessories">&#9201; Accessories</option>
+                </select>
+                <small class="ferr" id="e-cat"></small>
+              </div>
+              <div class="form-rules">
+                <p>&#9432; Validation rules:</p>
+                <ul>
+                  <li>Product name cannot be empty</li>
+                  <li>Price must be greater than 0</li>
+                  <li>Stock quantity cannot be negative</li>
+                  <li>Category must be selected</li>
+                </ul>
+              </div>
+              <div class="form-actions">
+                <button class="btn-add-big" onclick="addProduct()">
+                  &#10133; Add to Inventory
+                </button>
+                <button class="btn-reset" onclick="resetForm()">
+                  &#8635; Reset Form
+                </button>
+              </div>
+              <div
+                class="success-banner"
+                id="success-flash"
+                style="display: none"
+              >
+                <span>&#10003;</span>
+                <div>
+                  <strong>Product added successfully!</strong>
+                  <p>Switch to Products List tab to see it in the grid.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="tab-panel" id="panel-analytics">
