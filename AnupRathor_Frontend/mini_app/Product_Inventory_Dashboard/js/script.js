@@ -586,5 +586,16 @@ function onFilter() {
   if (btn) btn.classList.add("active");
   renderProducts();
 }
+function deleteProduct(id) {
+  allProducts = allProducts.filter(p => p.id !== id);
+  saveToStorage();
+  const f = getFiltered();
+  const maxPage = Math.ceil(f.length / PER_PAGE) || 1;
+  if (currentPage > maxPage) currentPage = maxPage;
+  updateStats();
+  renderProducts();
+}
 
 function renderAnalytics() {}
+
+
