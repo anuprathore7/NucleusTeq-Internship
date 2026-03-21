@@ -1261,3 +1261,94 @@ body {
 .bar-accs {
   background: var(--accs);
 }
+
+.site-footer {
+  background: var(--nav-bg);
+  color: #ccc;
+  margin-top: 30px;
+}
+.footer-inner {
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 36px 24px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 40px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.footer-logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+  margin-bottom: 10px;
+}
+.footer-desc {
+  font-size: 13px;
+  color: #aaa;
+  line-height: 1.65;
+  max-width: 340px;
+}
+.footer-cols {
+  display: flex;
+  gap: 50px;
+}
+.footer-col h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--srch-btn);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+.footer-col ul {
+  list-style: none;
+}
+.footer-col ul li {
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 7px;
+}
+.footer-bottom {
+  text-align: center;
+  padding: 16px 24px;
+  font-size: 12px;
+  color: #666;
+}
+@media (max-width: 900px) {
+  .page-body {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+    max-height: none;
+  }
+  .main-area {
+    padding-left: 0;
+    margin-top: 16px;
+  }
+  .topbar-right {
+    display: none;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .an-two-col {
+    grid-template-columns: 1fr;
+  }
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+@media (max-width: 560px) {
+  .product-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
