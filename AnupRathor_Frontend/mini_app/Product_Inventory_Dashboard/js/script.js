@@ -272,11 +272,11 @@ const DEFAULT_PRODUCTS = [
 ];
 
 /* ====
-   3. LOCAL STORAGE HELPERS
+   LOCAL STORAGE HELPERS
    localStorage stores data as text (strings).
    JSON.stringify converts array → text to save.
    JSON.parse converts text → array to read back.
-   ===== */
+   ==== */
 
 /* Write allProducts to localStorage */
 function saveToStorage() {
@@ -291,7 +291,7 @@ function loadFromStorage() {
 }
 
 /* ================================================
-   4. LOADER HELPERS
+   LOADER HELPERS
    Update the loading overlay text and progress bar
    ================================================ */
 function setLoaderText(msg) {
@@ -303,8 +303,9 @@ function animateProgress(pct) {
   const el = document.getElementById("prog-fill");
   if (el) el.style.width = pct + "%";
 }
+
 /* ================================================
-   5. REAL API FETCH
+   REAL API FETCH
    Uses fetch() — built-in browser HTTP function.
    async/await makes it easy to read and write.
    ================================================ */
@@ -354,9 +355,9 @@ async function fetchProductsFromAPI() {
 }
 
 /* ================================================
-   6. MAP API PRODUCTS
+   MAP API PRODUCTS
    Convert dummyjson format to our format.
-   Price: USD × 83 = INR
+   Price: USD × 94 = approximate INR conversion
    Category: remap their names to our 4 categories
    ================================================ */
 function mapAPIProducts(items) {
@@ -381,15 +382,18 @@ function mapAPIProducts(items) {
   return items.map((item, i) => ({
     id: 8000 + i,
     name: item.title,
-    price: Math.round(item.price * 83),
+    price: Math.round(item.price * 94),
     stock: item.stock,
     category: catMap[item.category] || "accessories",
   }));
 }
-/* 
-   8. INIT — THE ENTRY POINT OF THE APP
 
-   This is the function that starts EVERYTHING. Without calling init() at the bottom, the page just loads HTML and does nothing at all. */
+/* ================================================
+   INIT — THE ENTRY POINT OF THE APP
+   This function starts EVERYTHING.
+   It is called at the very bottom of this file
+   so all functions above are defined before it runs.
+   ================================================ */
 async function init() {
   console.log("--- App starting ---");
 
@@ -411,6 +415,12 @@ async function init() {
   console.log("--- App ready ---");
   console.log("Total products:", allProducts.length);
 }
+
+/* ================================================
+   UPDATE STATS
+   Recalculates sidebar quick stats and topbar counts.
+   Called after every add or delete.
+   ================================================ */
 function updateStats() {
   const total = allProducts.length;
   const value = allProducts.reduce((s, p) => s + p.price * p.stock, 0);
@@ -427,12 +437,13 @@ function updateStats() {
   document.getElementById("header-low").textContent = low;
   document.getElementById("header-out").textContent = out;
 }
-init();
 
+/* Format a number as Indian Rupees — e.g. 75000 → ₹75,000 */
 function fmt(n) {
   return "\u20B9" + Math.round(n).toLocaleString("en-IN");
 }
 
+/* Returns CSS class for the coloured category badge on each card */
 function catBadgeClass(c) {
   return (
     {
@@ -444,6 +455,7 @@ function catBadgeClass(c) {
   );
 }
 
+/* Returns CSS class for the coloured stripe at top of each card */
 function stripeClass(c) {
   return (
     {
@@ -455,11 +467,18 @@ function stripeClass(c) {
   );
 }
 
+/* Returns the stock badge HTML — green / orange / red */
 function stockBadge(s) {
   if (s === 0) return `<span class="stock-badge b-out">Out of Stock</span>`;
   if (s < 5) return `<span class="stock-badge b-low">Low Stock</span>`;
   return `<span class="stock-badge b-ok">In Stock</span>`;
 }
+
+/* ================================================
+   GET FILTERED
+   Applies search, category, low-stock and sort.
+   Returns the filtered + sorted array.
+   ================================================ */
 function getFiltered() {
   const query = document
     .getElementById("search-input")
@@ -477,7 +496,12 @@ function getFiltered() {
   if (sort === "za") list.sort((a, b) => b.name.localeCompare(a.name));
   return list;
 }
-/* renderProducts — builds card HTML for the current page and injects it */
+
+/* ================================================
+   RENDER PRODUCTS
+   Builds card HTML for the current page and injects
+   it into #product-grid in the DOM.
+   ================================================ */
 function renderProducts() {
   const filtered = getFiltered();
   const total = filtered.length;
@@ -521,6 +545,11 @@ function renderProducts() {
     .join("");
   renderPagination(total);
 }
+
+/* ================================================
+   PAGINATION
+   Builds prev / number / next buttons below the grid.
+   ================================================ */
 function renderPagination(total) {
   const pg = document.getElementById("pagination");
   const pages = Math.ceil(total / PER_PAGE);
@@ -536,13 +565,17 @@ function renderPagination(total) {
   pg.innerHTML = h;
 }
 
+/* Go to a specific page number and scroll the grid into view */
 function goPage(n) {
   currentPage = n;
   renderProducts();
   document.querySelector(".main-area").scrollIntoView({ behavior: "smooth" });
 }
 
-/* Tab switching — hides all panels, shows the chosen one */
+/* ================================================
+   TAB SWITCHING
+   Hides all tab panels, shows the one that was clicked.
+   ================================================ */
 function switchTab(tabName) {
   document
     .querySelectorAll(".tab-btn")
@@ -555,6 +588,10 @@ function switchTab(tabName) {
   if (tabName === "analytics") renderAnalytics();
 }
 
+/* ================================================
+   SET CATEGORY
+   Called by the category strip buttons.
+   ================================================ */
 function setCategory(cat) {
   currentCat = cat;
   currentPage = 1;
@@ -567,6 +604,10 @@ function setCategory(cat) {
   renderProducts();
 }
 
+/* ================================================
+   TOGGLE LOW STOCK
+   Called by the toggle switch in the sidebar.
+   ================================================ */
 function toggleLow() {
   lowStockOnly = !lowStockOnly;
   currentPage = 1;
@@ -575,6 +616,11 @@ function toggleLow() {
   renderProducts();
 }
 
+/* ================================================
+   ON FILTER
+   Called by search input, sort dropdown, and the
+   topbar category dropdown whenever they change.
+   ================================================ */
 function onFilter() {
   const catDrop = document.getElementById("search-cat-filter").value;
   currentCat = catDrop;
@@ -586,8 +632,14 @@ function onFilter() {
   if (btn) btn.classList.add("active");
   renderProducts();
 }
+
+/* ================================================
+   DELETE PRODUCT
+   Removes the product with matching id from the array,
+   saves to localStorage, and re-renders everything.
+   ================================================ */
 function deleteProduct(id) {
-  allProducts = allProducts.filter(p => p.id !== id);
+  allProducts = allProducts.filter((p) => p.id !== id);
   saveToStorage();
   const f = getFiltered();
   const maxPage = Math.ceil(f.length / PER_PAGE) || 1;
@@ -595,101 +647,182 @@ function deleteProduct(id) {
   updateStats();
   renderProducts();
 }
+
+/* ================================================
+   FORM VALIDATION HELPERS
+   showErr  — shows red error message below a field
+   clearErrs — clears all error messages
+   ================================================ */
 function showErr(errId, fgId, msg) {
   document.getElementById(errId).textContent = msg;
   document.getElementById(fgId)?.classList.add("has-err");
 }
 function clearErrs() {
-  ["e-name","e-price","e-stock","e-cat"].forEach(id => { document.getElementById(id).textContent = ""; });
-  ["fg-name","fg-price","fg-stock","fg-cat"].forEach(id => { document.getElementById(id)?.classList.remove("has-err"); });
+  ["e-name", "e-price", "e-stock", "e-cat"].forEach((id) => {
+    document.getElementById(id).textContent = "";
+  });
+  ["fg-name", "fg-price", "fg-stock", "fg-cat"].forEach((id) => {
+    document.getElementById(id)?.classList.remove("has-err");
+  });
 }
- 
+
+/* ================================================
+   ADD PRODUCT
+   Validates all fields, then adds a new product to
+   the front of allProducts and saves to localStorage.
+   ================================================ */
 function addProduct() {
-  const name  = document.getElementById("f-name").value.trim();
+  const name = document.getElementById("f-name").value.trim();
   const price = parseFloat(document.getElementById("f-price").value);
   const stock = parseInt(document.getElementById("f-stock").value, 10);
-  const cat   = document.getElementById("f-cat").value;
+  const cat = document.getElementById("f-cat").value;
   clearErrs();
   let valid = true;
-  if (!name)                      { showErr("e-name",  "fg-name",  "Name is required.");   valid=false; }
-  if (isNaN(price) || price <= 0) { showErr("e-price", "fg-price", "Price must be > 0.");  valid=false; }
-  if (document.getElementById("f-stock").value===""||isNaN(stock)||stock<0)
-                                  { showErr("e-stock", "fg-stock", "Cannot be negative."); valid=false; }
-  if (!cat)                       { showErr("e-cat",   "fg-cat",   "Please select one.");  valid=false; }
+  if (!name) {
+    showErr("e-name", "fg-name", "Name is required.");
+    valid = false;
+  }
+  if (isNaN(price) || price <= 0) {
+    showErr("e-price", "fg-price", "Price must be > 0.");
+    valid = false;
+  }
+  if (
+    document.getElementById("f-stock").value === "" ||
+    isNaN(stock) ||
+    stock < 0
+  ) {
+    showErr("e-stock", "fg-stock", "Cannot be negative.");
+    valid = false;
+  }
+  if (!cat) {
+    showErr("e-cat", "fg-cat", "Please select one.");
+    valid = false;
+  }
   if (!valid) return;
-  allProducts.unshift({ id:Date.now(), name, price, stock, category:cat });
+  allProducts.unshift({ id: Date.now(), name, price, stock, category: cat });
   saveToStorage();
-  currentPage=1; currentCat="all"; lowStockOnly=false;
-  document.getElementById("search-input").value      = "";
+  currentPage = 1;
+  currentCat = "all";
+  lowStockOnly = false;
+  document.getElementById("search-input").value = "";
   document.getElementById("search-cat-filter").value = "all";
-  document.getElementById("sort-sel").value          = "def";
+  document.getElementById("sort-sel").value = "def";
   document.getElementById("low-tog").classList.remove("on");
-  document.querySelectorAll(".csb").forEach(b=>b.classList.remove("active"));
+  document
+    .querySelectorAll(".csb")
+    .forEach((b) => b.classList.remove("active"));
   document.getElementById("cs-all")?.classList.add("active");
-  document.getElementById("f-name").value=""; document.getElementById("f-price").value="";
-  document.getElementById("f-stock").value=""; document.getElementById("f-cat").value="";
+  document.getElementById("f-name").value = "";
+  document.getElementById("f-price").value = "";
+  document.getElementById("f-stock").value = "";
+  document.getElementById("f-cat").value = "";
   clearErrs();
-  updateStats(); renderProducts();
+  updateStats();
+  renderProducts();
   const flash = document.getElementById("success-flash");
   flash.style.display = "flex";
-  setTimeout(() => { flash.style.display = "none"; }, 4000);
+  setTimeout(() => {
+    flash.style.display = "none";
+  }, 4000);
 }
- 
+
+/* ================================================
+   RESET FORM
+   Clears all form fields and hides the success banner.
+   ================================================ */
 function resetForm() {
-  document.getElementById("f-name").value=""; document.getElementById("f-price").value="";
-  document.getElementById("f-stock").value=""; document.getElementById("f-cat").value="";
+  document.getElementById("f-name").value = "";
+  document.getElementById("f-price").value = "";
+  document.getElementById("f-stock").value = "";
+  document.getElementById("f-cat").value = "";
   clearErrs();
   document.getElementById("success-flash").style.display = "none";
 }
 
+/* ================================================
+   RENDER ANALYTICS
+   Builds all sections in the Analytics tab.
+   Called every time the Analytics tab is opened.
+   ================================================ */
 function renderAnalytics() {
-  const total    = allProducts.length;
-  const value    = allProducts.reduce((s,p)=>s+p.price*p.stock,0);
-  const avg      = total>0 ? allProducts.reduce((s,p)=>s+p.price,0)/total : 0;
-  const cats     = new Set(allProducts.map(p=>p.category)).size;
-  const outCount = allProducts.filter(p=>p.stock===0).length;
-  const lowCount = allProducts.filter(p=>p.stock>0&&p.stock<5).length;
-  const inCount  = allProducts.filter(p=>p.stock>=5).length;
- 
+  const total = allProducts.length;
+  const value = allProducts.reduce((s, p) => s + p.price * p.stock, 0);
+  const avg =
+    total > 0 ? allProducts.reduce((s, p) => s + p.price, 0) / total : 0;
+  const cats = new Set(allProducts.map((p) => p.category)).size;
+  const outCount = allProducts.filter((p) => p.stock === 0).length;
+  const lowCount = allProducts.filter((p) => p.stock > 0 && p.stock < 5).length;
+  const inCount = allProducts.filter((p) => p.stock >= 5).length;
+
   document.getElementById("an-total").textContent = total;
-  document.getElementById("an-value").textContent = value>=10000000?(value/10000000).toFixed(1)+" Cr":value>=100000?(value/100000).toFixed(1)+" L":fmt(value);
-  document.getElementById("an-avg").textContent   = fmt(avg);
-  document.getElementById("an-cats").textContent  = cats;
-  document.getElementById("an-out").textContent   = outCount;
-  document.getElementById("an-low").textContent   = lowCount;
-  document.getElementById("an-updated").textContent = new Date().toLocaleTimeString("en-IN");
- 
+  document.getElementById("an-value").textContent =
+    value >= 10000000
+      ? (value / 10000000).toFixed(1) + " Cr"
+      : value >= 100000
+        ? (value / 100000).toFixed(1) + " L"
+        : fmt(value);
+  document.getElementById("an-avg").textContent = fmt(avg);
+  document.getElementById("an-cats").textContent = cats;
+  document.getElementById("an-out").textContent = outCount;
+  document.getElementById("an-low").textContent = lowCount;
+  document.getElementById("an-updated").textContent =
+    new Date().toLocaleTimeString("en-IN");
+
   const catMeta = {
-    electronics:{ icon:"&#128187;", label:"Electronics", cls:"cb-elec"  },
-    clothing:   { icon:"&#128248;", label:"Clothing",    cls:"cb-cloth" },
-    books:      { icon:"&#128218;", label:"Books",       cls:"cb-books" },
-    accessories:{ icon:"&#9201;",   label:"Accessories", cls:"cb-accs"  },
+    electronics: { icon: "&#128187;", label: "Electronics", cls: "cb-elec" },
+    clothing: { icon: "&#128248;", label: "Clothing", cls: "cb-cloth" },
+    books: { icon: "&#128218;", label: "Books", cls: "cb-books" },
+    accessories: { icon: "&#9201;", label: "Accessories", cls: "cb-accs" },
   };
-  document.getElementById("cat-breakdown").innerHTML =
-    Object.entries(catMeta).map(([cat,m]) => {
-      const items = allProducts.filter(p=>p.category===cat);
-      const val   = items.reduce((s,p)=>s+p.price*p.stock,0);
+  document.getElementById("cat-breakdown").innerHTML = Object.entries(catMeta)
+    .map(([cat, m]) => {
+      const items = allProducts.filter((p) => p.category === cat);
+      const val = items.reduce((s, p) => s + p.price * p.stock, 0);
       return `<div class="cb-card ${m.cls}"><div class="cb-icon">${m.icon}</div><div><div class="cb-name">${m.label}</div><div class="cb-meta">${items.length} products</div></div><div class="cb-right"><div class="cb-val">${fmt(val)}</div><div class="cb-sub">total value</div></div></div>`;
-    }).join("");
- 
+    })
+    .join("");
+
   const t = total || 1;
   document.getElementById("health-rows").innerHTML = `
-    <div class="health-row"><div class="health-dot dot-green"></div><span class="health-lbl">In Stock (5+)</span><span class="health-val">${inCount}</span><div class="health-bar-wrap"><div class="health-bar bar-green" style="width:${(inCount/t*100).toFixed(1)}%"></div></div></div>
-    <div class="health-row"><div class="health-dot dot-yellow"></div><span class="health-lbl">Low Stock (1–4)</span><span class="health-val">${lowCount}</span><div class="health-bar-wrap"><div class="health-bar bar-yellow" style="width:${(lowCount/t*100).toFixed(1)}%"></div></div></div>
-    <div class="health-row"><div class="health-dot dot-red"></div><span class="health-lbl">Out of Stock</span><span class="health-val">${outCount}</span><div class="health-bar-wrap"><div class="health-bar bar-red" style="width:${(outCount/t*100).toFixed(1)}%"></div></div></div>`;
- 
-  const okDeg  = (inCount  / t) * 360;
+    <div class="health-row"><div class="health-dot dot-green"></div><span class="health-lbl">In Stock (5+)</span><span class="health-val">${inCount}</span><div class="health-bar-wrap"><div class="health-bar bar-green" style="width:${((inCount / t) * 100).toFixed(1)}%"></div></div></div>
+    <div class="health-row"><div class="health-dot dot-yellow"></div><span class="health-lbl">Low Stock (1–4)</span><span class="health-val">${lowCount}</span><div class="health-bar-wrap"><div class="health-bar bar-yellow" style="width:${((lowCount / t) * 100).toFixed(1)}%"></div></div></div>
+    <div class="health-row"><div class="health-dot dot-red"></div><span class="health-lbl">Out of Stock</span><span class="health-val">${outCount}</span><div class="health-bar-wrap"><div class="health-bar bar-red" style="width:${((outCount / t) * 100).toFixed(1)}%"></div></div></div>`;
+
+  const okDeg = (inCount / t) * 360;
   const lowDeg = (lowCount / t) * 360;
-  document.getElementById("donut-chart").style.background = `conic-gradient(#16a34a 0deg ${okDeg}deg, #d97706 ${okDeg}deg ${okDeg+lowDeg}deg, #dc2626 ${okDeg+lowDeg}deg 360deg)`;
+  document.getElementById("donut-chart").style.background =
+    `conic-gradient(#16a34a 0deg ${okDeg}deg, #d97706 ${okDeg}deg ${okDeg + lowDeg}deg, #dc2626 ${okDeg + lowDeg}deg 360deg)`;
   document.getElementById("donut-num").textContent = total;
- 
-  const catList   = ["electronics","clothing","books","accessories"];
-  const barColors = { electronics:"bar-elec", clothing:"bar-cloth", books:"bar-books", accessories:"bar-accs" };
-  const barLabels = { electronics:"&#128187; Electronics", clothing:"&#128248; Clothing", books:"&#128218; Books", accessories:"&#9201; Accessories" };
-  const counts    = catList.map(c => allProducts.filter(p=>p.category===c).length);
-  const maxC      = Math.max(...counts, 1);
-  document.getElementById("bar-chart").innerHTML =
-    catList.map((cat,i) => `<div class="bar-group"><div class="bar-val">${counts[i]}</div><div class="bar-col-wrap"><div class="bar-col ${barColors[cat]}" style="height:${(counts[i]/maxC*100).toFixed(1)}%"></div></div><div class="bar-lbl">${barLabels[cat]}</div></div>`).join("");
+
+  const catList = ["electronics", "clothing", "books", "accessories"];
+  const barColors = {
+    electronics: "bar-elec",
+    clothing: "bar-cloth",
+    books: "bar-books",
+    accessories: "bar-accs",
+  };
+  const barLabels = {
+    electronics: "&#128187; Electronics",
+    clothing: "&#128248; Clothing",
+    books: "&#128218; Books",
+    accessories: "&#9201; Accessories",
+  };
+  const counts = catList.map(
+    (c) => allProducts.filter((p) => p.category === c).length,
+  );
+  const maxC = Math.max(...counts, 1);
+  document.getElementById("bar-chart").innerHTML = catList
+    .map(
+      (cat, i) =>
+        `<div class="bar-group"><div class="bar-val">${counts[i]}</div><div class="bar-col-wrap"><div class="bar-col ${barColors[cat]}" style="height:${((counts[i] / maxC) * 100).toFixed(1)}%"></div></div><div class="bar-lbl">${barLabels[cat]}</div></div>`,
+    )
+    .join("");
 }
 
-
+/* ================================================
+   START THE APP
+   init() is called here — at the very bottom —
+   so every function above is already defined
+   before init() tries to call them.
+   ================================================ */
+init();
