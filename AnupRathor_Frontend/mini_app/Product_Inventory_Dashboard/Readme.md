@@ -24,7 +24,7 @@ To see it yourself:
 2. Click **Local Storage** on the left.
 3. You will see the key `pid_products` with all product data stored as JSON text.
 
-![LocalStorage]](Screenshots/09_localStorage.png)
+![LocalStorage](Screenshots/localstorage.png)
  
 
 
