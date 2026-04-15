@@ -34,7 +34,7 @@ public class UserController {
         );
     }
 
-      // POST API → used to submit (add) a new user
+       // POST API → used to submit (add) a new user
     @PostMapping("/submit")
     public ResponseEntity<String> submitUser(
 
@@ -48,5 +48,9 @@ public class UserController {
         return ResponseEntity.status(201)
                 .body("User added successfully");
     }
+
+
+    
+
    
 }

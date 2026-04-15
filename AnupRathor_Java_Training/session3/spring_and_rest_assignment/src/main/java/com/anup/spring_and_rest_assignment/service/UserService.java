@@ -55,4 +55,17 @@ public class UserService {
         userRepository.addUser(user);
     }
 
+      // This method deletes a user but only if confirmation is given
+    public void deleteUser(Long id, boolean confirm) {
+
+        // Safety check → do not delete without confirmation
+        if (!confirm) {
+            throw new RuntimeException("Confirmation required");
+        }
+
+        // If confirmed → proceed to delete
+        userRepository.deleteUser(id);
+    }
+
+    
 }
