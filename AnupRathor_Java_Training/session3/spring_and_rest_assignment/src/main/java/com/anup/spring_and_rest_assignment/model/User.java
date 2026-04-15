@@ -14,9 +14,7 @@ public class User {
         this.role = role;
     }
 
-    public User(int id2, String name2, int age2, String role2) {
-        //TODO Auto-generated constructor stub
-    }
+    
 
     public Long getId() {
         return id;
@@ -35,4 +33,10 @@ public class User {
         return role;
     }
 
+    public void setId(Long id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setAge(Integer age) { this.age = age; }
+    public void setRole(String role) { this.role = role; }
 }
+
+
