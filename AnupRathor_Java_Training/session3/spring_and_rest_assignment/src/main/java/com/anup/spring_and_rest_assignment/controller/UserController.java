@@ -50,7 +50,22 @@ public class UserController {
     }
 
 
-    
+         // DELETE API → used to delete user by id
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<String> deleteUser(
+
+            // ID comes from URL path
+            @PathVariable Long id,
+
+            // Confirmation comes from query param (default is false if not passed)
+            @RequestParam(defaultValue = "false") boolean confirm) {
+
+        // Pass request to service for validation + deletion logic
+        userService.deleteUser(id, confirm);
+
+        // If successful → return success message
+        return ResponseEntity.ok("User deleted successfully");
+    }
 
    
 }
