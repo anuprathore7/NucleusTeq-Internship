@@ -42,4 +42,17 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+
+        // This method handles adding a new user
+    public void submitUser(User user) {
+
+        // Basic validation → name should not be null or empty
+        if (user.getName() == null || user.getName().isEmpty()) {
+            throw new RuntimeException("Invalid input");
+        }
+
+        // If valid → add user to repository
+        userRepository.addUser(user);
+    }
+
 }
