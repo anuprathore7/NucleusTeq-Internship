@@ -34,5 +34,19 @@ public class UserController {
         );
     }
 
+      // POST API → used to submit (add) a new user
+    @PostMapping("/submit")
+    public ResponseEntity<String> submitUser(
+
+            // JSON request body will be converted into User object automatically
+            @RequestBody User user) {
+
+        // Call service layer to handle logic and validation
+        userService.submitUser(user);
+
+        // Return 201 status (created successfully)
+        return ResponseEntity.status(201)
+                .body("User added successfully");
+    }
    
 }
