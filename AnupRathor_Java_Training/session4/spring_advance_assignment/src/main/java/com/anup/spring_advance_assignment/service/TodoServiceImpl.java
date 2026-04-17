@@ -52,6 +52,49 @@ public class TodoServiceImpl implements TodoService {
 
     }
 
-    
+    @Override
+    public List<TodoDTO> getAllTodos() {
+        return todoRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public TodoDTO getTodoById(Long id) {
+        Todo todo = todoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Todo not found"));
+
+        return mapToDTO(todo);
+    }
+
+    @Override
+    public String updateTodo(Long id, TodoDTO dto) {
+        Todo todo = todoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Todo not found"));
+
+        if (dto.getStatus() != null) {
+            if (!isValidTransition(todo.getStatus(), dto.getStatus())) {
+                throw new InvalidStatusException("Invalid status transition");
+            }
+            todo.setStatus(dto.getStatus());
+        }
+
+        todo.setTitle(dto.getTitle());
+        todo.setDescription(dto.getDescription());
+
+        todoRepository.save(todo);
+
+        return "Todo updated successfully";
+
+    }
+
+    @Override
+    public String deleteTodo(Long id) {
+        Todo todo = todoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Todo not found"));
+
+        todoRepository.delete(todo);
+        return "Todo deleted successfully";
+    }
 
 }
