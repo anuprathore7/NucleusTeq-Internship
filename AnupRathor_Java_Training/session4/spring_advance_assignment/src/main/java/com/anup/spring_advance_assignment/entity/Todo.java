@@ -14,7 +14,8 @@ public class Todo {
     private String title;
     private String description;
 
-    
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
     private LocalDateTime createdAt;
 
@@ -30,6 +31,9 @@ public class Todo {
         return description;
     }
 
+    public Status getStatus() {
+        return status;
+    }
 
 
     public LocalDateTime getCreatedAt() {
@@ -48,7 +52,9 @@ public class Todo {
         this.description = description;
     }
 
-   
+    public void setStatus(Status status) {
+        this.status = status;
+    }
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
