@@ -35,5 +35,20 @@ class TodoServiceTest {
     @InjectMocks
     private TodoServiceImpl service;
 
+
+    // CREATE TEST
+    @Test
+    void testCreateTodo() {
+        TodoDTO dto = new TodoDTO();
+        dto.setTitle("Test Todo");
+
+        when(repository.save(any(Todo.class))).thenReturn(new Todo());
+
+        String result = service.createTodo(dto);
+
+        assertEquals("Todo created successfully", result);
+        verify(notificationClient).sendNotification(anyString());
+    }
+
     
 }
