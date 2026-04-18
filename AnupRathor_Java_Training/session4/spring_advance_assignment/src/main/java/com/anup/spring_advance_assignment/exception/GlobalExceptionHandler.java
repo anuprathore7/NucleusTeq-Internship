@@ -1,5 +1,6 @@
 package com.anup.spring_advance_assignment.exception;
 
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -14,5 +15,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidStatusException.class)
     public String handleInvalidStatus(InvalidStatusException ex) {
         return ex.getMessage();
+    }
+
+     @ExceptionHandler(HttpMessageNotReadableException.class)
+    public String handleInvalidEnum(HttpMessageNotReadableException ex) {
+        return "Invalid status value. Use PENDING or COMPLETED.";
     }
 }
