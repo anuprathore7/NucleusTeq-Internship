@@ -131,6 +131,28 @@ class TodoServiceTest {
                 () -> service.updateTodo(1L, dto));
     }
 
+    //  DELETE SUCCESS
+    @Test
+    void testDeleteTodo() {
+        when(repository.findById(1L)).thenReturn(Optional.of(new Todo()));
+
+        String result = service.deleteTodo(1L);
+
+        assertEquals("Todo deleted successfully", result);
+
+        // IMPORTANT: your service must use deleteById(id)
+        verify(repository).delete(any(Todo.class));
+    }
+
+    //  DELETE NOT FOUND
+    @Test
+    void testDeleteTodo_NotFound() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> service.deleteTodo(1L));
+    }
+
     
     
 }
