@@ -19,10 +19,12 @@ import org.slf4j.LoggerFactory;
 @Service
 public class TodoServiceImpl implements TodoService {
     private static final Logger logger = LoggerFactory.getLogger(TodoServiceImpl.class);
-    private TodoRepository todoRepository;
+    private  TodoRepository todoRepository;
+    private final NotificationService notificationService;
 
-    public TodoServiceImpl(TodoRepository todoRepository) {
+    public TodoServiceImpl(TodoRepository todoRepository , NotificationService notificationService) {
         this.todoRepository = todoRepository;
+        this.notificationService = notificationService;
     }
 
     private boolean isValidTransition(Status current, Status newStatus) {
@@ -56,6 +58,7 @@ public class TodoServiceImpl implements TodoService {
 
         todo.setCreatedAt(LocalDateTime.now());
         todoRepository.save(todo);
+        notificationService.sendNotification("New TODO created");
         logger.info("TODO created successfully");
         return "Todo created successfully";
 
