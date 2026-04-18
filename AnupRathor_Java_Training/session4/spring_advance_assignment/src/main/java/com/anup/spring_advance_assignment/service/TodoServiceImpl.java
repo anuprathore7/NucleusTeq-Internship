@@ -1,5 +1,6 @@
 package com.anup.spring_advance_assignment.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -12,8 +13,12 @@ import com.anup.spring_advance_assignment.exception.ResourceNotFoundException;
 import com.anup.spring_advance_assignment.repository.TodoRepository;
 import com.anup.spring_advance_assignment.entity.Status;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class TodoServiceImpl implements TodoService {
+    private static final Logger logger = LoggerFactory.getLogger(TodoServiceImpl.class);
     private TodoRepository todoRepository;
 
     public TodoServiceImpl(TodoRepository todoRepository) {
@@ -35,6 +40,8 @@ public class TodoServiceImpl implements TodoService {
 
     @Override
     public String createTodo(TodoDTO dto) {
+        logger.info("Creating new TODO");
+
         Todo todo = new Todo();
 
         todo.setTitle(dto.getTitle());
@@ -47,13 +54,16 @@ public class TodoServiceImpl implements TodoService {
             todo.setStatus(dto.getStatus());
         }
 
+        todo.setCreatedAt(LocalDateTime.now());
         todoRepository.save(todo);
+        logger.info("TODO created successfully");
         return "Todo created successfully";
 
     }
 
     @Override
     public List<TodoDTO> getAllTodos() {
+        logger.info("Fetching all TODOs");
         return todoRepository.findAll()
                 .stream()
                 .map(this::mapToDTO)
@@ -62,6 +72,7 @@ public class TodoServiceImpl implements TodoService {
 
     @Override
     public TodoDTO getTodoById(Long id) {
+        logger.info("Fetching TODO by ID: {}", id);
         Todo todo = todoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Todo not found"));
 
@@ -70,6 +81,7 @@ public class TodoServiceImpl implements TodoService {
 
     @Override
     public String updateTodo(Long id, TodoDTO dto) {
+        logger.info("Updating TODO with ID: {}", id);
         Todo todo = todoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Todo not found"));
 
@@ -84,6 +96,7 @@ public class TodoServiceImpl implements TodoService {
         todo.setDescription(dto.getDescription());
 
         todoRepository.save(todo);
+        logger.info("TODO updated successfully");
 
         return "Todo updated successfully";
 
@@ -91,6 +104,7 @@ public class TodoServiceImpl implements TodoService {
 
     @Override
     public String deleteTodo(Long id) {
+        logger.info("Deleting TODO with ID: {}", id);
         Todo todo = todoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Todo not found"));
 
         todoRepository.delete(todo);
