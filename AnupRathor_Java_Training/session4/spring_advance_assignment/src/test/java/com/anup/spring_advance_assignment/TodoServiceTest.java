@@ -50,5 +50,43 @@ class TodoServiceTest {
         verify(notificationClient).sendNotification(anyString());
     }
 
+     //  GET ALL TEST
+    @Test
+    void testGetAllTodos() {
+        Todo t1 = new Todo();
+        t1.setTitle("Task1");
+
+        Todo t2 = new Todo();
+        t2.setTitle("Task2");
+
+        when(repository.findAll()).thenReturn(Arrays.asList(t1, t2));
+
+        List<TodoDTO> result = service.getAllTodos();
+
+        assertEquals(2, result.size());
+    }
+
+    //  GET BY ID SUCCESS
+    @Test
+    void testGetTodoById_Success() {
+        Todo todo = new Todo();
+        todo.setTitle("Test");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(todo));
+
+        TodoDTO result = service.getTodoById(1L);
+
+        assertEquals("Test", result.getTitle());
+    }
+
+    //  GET BY ID NOT FOUND
+    @Test
+    void testGetTodoById_NotFound() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> service.getTodoById(1L));
+    }
+
     
 }
