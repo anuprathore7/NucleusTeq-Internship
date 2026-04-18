@@ -88,5 +88,49 @@ class TodoServiceTest {
                 () -> service.getTodoById(1L));
     }
 
+      //  UPDATE SUCCESS
+    @Test
+    void testUpdateTodo_Success() {
+        Todo existing = new Todo();
+        existing.setStatus(Status.PENDING);
+
+        TodoDTO dto = new TodoDTO();
+        dto.setTitle("Updated");
+        dto.setStatus(Status.COMPLETED);
+
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+
+        String result = service.updateTodo(1L, dto);
+
+        assertEquals("Todo updated successfully", result);
+    }
+
+    //  UPDATE INVALID STATUS
+    @Test
+    void testUpdateTodo_InvalidStatus() {
+        Todo existing = new Todo();
+        existing.setStatus(Status.PENDING);
+
+        TodoDTO dto = new TodoDTO();
+        dto.setStatus(Status.PENDING); // invalid transition
+
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+
+        assertThrows(InvalidStatusException.class,
+                () -> service.updateTodo(1L, dto));
+    }
+
+    //  UPDATE NOT FOUND
+    @Test
+    void testUpdateTodo_NotFound() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+
+        TodoDTO dto = new TodoDTO();
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> service.updateTodo(1L, dto));
+    }
+
+    
     
 }
