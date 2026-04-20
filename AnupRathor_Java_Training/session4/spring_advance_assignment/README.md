@@ -353,6 +353,136 @@ This project clearly demonstrates:
 
 ---
 
+
+##  Project Enhancements (Session 4)
+
+This version of the project includes additional enterprise-level features to improve maintainability, observability, and testability.
+
+---
+
+###  1. Notification Service (Simulation)
+
+A dummy service has been introduced to simulate external system communication.
+
+**Class:** `NotificationService`
+
+* This service is called when a new TODO is created.
+* It mimics real-world behavior where systems send notifications (email, SMS, etc.).
+* Currently, it logs a message instead of calling a real external API.
+
+**Flow:**
+
+```text
+Create TODO → Service Layer → NotificationService → Log Message
+```
+
+**Example Behavior:**
+
+```text
+"Notification sent for new TODO"
+```
+
+---
+
+###  2. Logging (Using SLF4J)
+
+Logging is implemented to track application flow and actions.
+
+**Where logging is used:**
+
+* Controller Layer → Logs incoming requests
+* Service Layer → Logs business operations
+* Notification Service → Logs notification events
+
+**Purpose:**
+
+* Helps in debugging
+* Tracks execution flow
+* Simulates real production-level monitoring
+
+**Example:**
+
+```text
+INFO: Creating new TODO
+INFO: Notification sent for new TODO
+```
+
+ 1. Logging and Notifications 
+ ![Logging and Notifications](<screenshots\Screenshot 2026-04-18 171657.png>)
+
+---
+
+###  3. Unit Testing (JUnit + Mockito)
+
+Unit testing is implemented to ensure the correctness of business logic.
+
+**Tools Used:**
+
+* JUnit 5 → Testing framework
+* Mockito → Mocking dependencies
+
+1. Test Cases 
+![Test Cases Passed](<screenshots\TestCases.png>)
+
+---
+
+####  Testing Strategy
+
+* Repository layer is mocked (no real database interaction)
+* Notification service is mocked
+* Only Service layer logic is tested
+
+---
+
+####  Covered Scenarios
+
+* Create TODO
+* Get All TODOs
+* Get TODO by ID
+
+* Success case
+* Not Found case
+* Update TODO
+
+* Valid update
+* Invalid status transition
+* Not Found case
+* Delete TODO
+
+ * Success case
+ * Not Found case
+
+---
+
+####  Code Coverage
+
+* Achieved approximately **85% coverage**
+* Ensures all major business logic paths are tested
+
+---
+
+####  How to Run Tests
+
+Using terminal:
+
+```
+mvn test
+```
+---
+
+###  Summary of Enhancements
+
+```text
+✔ Added logging for better traceability
+✔ Simulated external notification service
+✔ Implemented unit testing with Mockito
+✔ Achieved high code coverage (~85%)
+✔ Improved overall code quality and reliability
+```
+
+---
+
+
 ##  Author
 
 **Anup Rathor**
