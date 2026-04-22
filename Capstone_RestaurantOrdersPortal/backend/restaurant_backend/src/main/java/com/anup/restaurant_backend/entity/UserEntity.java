@@ -2,6 +2,8 @@ package com.anup.restaurant_backend.entity;
 import com.anup.restaurant_backend.enums.UserRole;
 import jakarta.persistence.*;
 
+import java.util.List;
+
 
 @Entity
 @Table(name = "users")
@@ -31,6 +33,9 @@ public class UserEntity {
     private Double walletBalance;
     //  here users Balance will be generated.
 
+    //  One user → many addresses
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Address> addresses;
     //  Default constructor (required by JPA)
     public UserEntity() {
     }
@@ -113,4 +118,8 @@ public class UserEntity {
     public void setWalletBalance(Double walletBalance) {
         this.walletBalance = walletBalance;
     }
+
+    public void setAddresses(List<Address> addresses) { this.addresses = addresses; }
+
+    public List<Address> getAddresses() { return addresses; }
 }
