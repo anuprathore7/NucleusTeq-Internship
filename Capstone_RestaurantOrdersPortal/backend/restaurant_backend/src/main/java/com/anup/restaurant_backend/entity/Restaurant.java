@@ -55,8 +55,9 @@ public class Restaurant {
     @JoinColumn(name = "owner_id")
     private UserEntity owner;
 
-    @OneToMany(mappedBy = "restaurant")
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL)
     private List<Category> categories;
+
 
     /**
      *  Default constructor (required by JPA)
@@ -65,6 +66,14 @@ public class Restaurant {
     }
 
     // ================= GETTERS & SETTERS =================
+
+    public List<Category> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(List<Category> categories) {
+        this.categories = categories;
+    }
 
     public Long getId() {
         return id;
@@ -117,6 +126,8 @@ public class Restaurant {
     public UserEntity getOwner() {
         return owner;
     }
+
+
 
     /**
      *  MOST IMPORTANT LINE
