@@ -50,7 +50,8 @@ public class MenuItem {
      * true = available
      * false = out of stock
      */
-    private Boolean available;
+    @Column(columnDefinition = "boolean default true")
+    private Boolean available = true;
 
     /**
      *  RELATIONSHIP WITH CATEGORY
