@@ -43,5 +43,21 @@ public class RestaurantController {
         return restaurantService.getRestaurantsByOwner(ownerId);
     }
 
+    @PutMapping("/{id}")
+    public RestaurantResponseDto updateRestaurant(
+            @PathVariable Long id,
+            @RequestBody RestaurantRequestDto request,
+            @RequestHeader("Authorization") String token) {
+        return restaurantService.updateRestaurant(id, request, token);
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteRestaurant(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String token) {
+        restaurantService.deleteRestaurant(id, token);
+        return "Restaurant deleted successfully";
+    }
+
 
 }

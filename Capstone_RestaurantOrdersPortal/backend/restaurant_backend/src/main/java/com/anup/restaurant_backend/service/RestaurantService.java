@@ -17,4 +17,8 @@ public interface RestaurantService {
     RestaurantResponseDto getRestaurantById(Long id);
 
     List<RestaurantResponseDto> getRestaurantsByOwner(Long ownerId);
+
+    RestaurantResponseDto updateRestaurant(Long id, RestaurantRequestDto request, String token);
+
+    void deleteRestaurant(Long id, String token);
 }

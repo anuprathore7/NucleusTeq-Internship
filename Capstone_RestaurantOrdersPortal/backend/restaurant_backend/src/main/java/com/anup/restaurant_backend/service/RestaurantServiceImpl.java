@@ -123,4 +123,48 @@ public class RestaurantServiceImpl implements RestaurantService {
                 r.getOwner().getId()
         );
     }
+
+    @Override
+    public RestaurantResponseDto updateRestaurant(Long id, RestaurantRequestDto request, String token) {
+        String email = jwtService.extractEmail(token.substring(7));
+
+        UserEntity owner = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
+
+        if (!restaurant.getOwner().getId().equals(owner.getId())) {
+            throw new RuntimeException("You are not authorized to update this restaurant");
+        }
+
+        restaurant.setName(request.getName());
+        restaurant.setDescription(request.getDescription());
+        restaurant.setAddress(request.getAddress());
+        restaurant.setPhone(request.getPhone());
+
+        Restaurant updated = restaurantRepository.save(restaurant);
+
+        log.info("Owner '{}' updated restaurantId: {}", email, id);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public void deleteRestaurant(Long id, String token) {
+        String email = jwtService.extractEmail(token.substring(7));
+
+        UserEntity owner = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
+
+        if (!restaurant.getOwner().getId().equals(owner.getId())) {
+            throw new RuntimeException("You are not authorized to delete this restaurant");
+        }
+
+        log.info("Owner '{}' deleting restaurantId: {}", email, id);
+        restaurantRepository.deleteById(id);
+        log.info("Restaurant deleted successfully");
+    }
 }
