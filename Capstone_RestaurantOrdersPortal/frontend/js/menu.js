@@ -3,25 +3,30 @@
  *   Food Mania — Menu Page JS
  * ============================================
  *
+ *  APIs USED:
+ *  GET  /api/restaurants/{id}             → restaurant info
+ *  GET  /api/restaurants/{id}/categories  → categories (public)
+ *  GET  /api/restaurants/{id}/menu-items  → menu items (public)
+ *  POST /api/cart/add                     → add item (token required)
+ *    Body: { menuItemId, quantity }
  */
-/**  These emojis just for testing purpose after that i will change with images **/
-const FOOD_EMOJIS   = ['🍕','🍔','🍜','🍣','🌮','🍛','🍱','🥗','🍗','🥪','🧆','🥘','🍲','🥙','🌯'];
-const UNAVAIL_EMOJI = '🚫';
 
-let allCategories = [];
-let allMenuItems  = [];
-let activeCategory = 'all'; // 'all' or category id as string
+const FOOD_EMOJIS = ['🍕','🍔','🍜','🍣','🌮','🍛','🍱','🥗','🍗','🥪','🧆','🥘','🍲','🥙','🌯'];
+
+let allCategories  = [];
+let allMenuItems   = [];
+let activeCategory = 'all';
+let cartItemCount  = 0;
 
 // ─────────────────────────────────────────
 //   PAGE INIT
 // ─────────────────────────────────────────
-
 document.addEventListener('DOMContentLoaded', () => {
     requireAuth();
     setupNavbar();
+    loadCartCount();
     loadMenuData();
 
-    // Close dropdown on outside click
     document.addEventListener('click', (e) => {
         const menu = document.getElementById('userMenu');
         if (menu && !menu.contains(e.target)) {
@@ -33,59 +38,68 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────
 //   NAVBAR
 // ─────────────────────────────────────────
-
 function setupNavbar() {
     const email = getEmail() || 'Account';
     document.getElementById('userEmailNav').textContent = email.split('@')[0];
     document.getElementById('userEmailDrop').textContent = email;
 }
-
 function toggleUserMenu() {
     document.getElementById('userDropdown').classList.toggle('hidden');
 }
 
 // ─────────────────────────────────────────
+//   LOAD EXISTING CART COUNT
+// ─────────────────────────────────────────
+async function loadCartCount() {
+    try {
+        const res = await apiFetch('/api/cart');
+        if (res.ok) {
+            const cart = await res.json();
+            if (cart.items && cart.items.length > 0) {
+                const total = cart.items.reduce((s, i) => s + i.quantity, 0);
+                updateCartBadge(total);
+            }
+        }
+    } catch (e) { /* silent */ }
+}
+
+function updateCartBadge(count) {
+    cartItemCount = count;
+    const badge = document.getElementById('cartCount');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+// ─────────────────────────────────────────
 //   GET RESTAURANT ID
 // ─────────────────────────────────────────
-
 function getRestaurantId() {
-    // Try URL param first: menu.html?restaurantId=5
     const params = new URLSearchParams(window.location.search);
-    const fromUrl = params.get('restaurantId');
-    if (fromUrl) return fromUrl;
-
-    // Fallback to localStorage (set by restaurants page)
-    return localStorage.getItem('fm_restaurant_id');
+    return params.get('restaurantId') || localStorage.getItem('fm_restaurant_id');
 }
 
 // ─────────────────────────────────────────
 //   LOAD ALL DATA
 // ─────────────────────────────────────────
-
 async function loadMenuData() {
     const restaurantId = getRestaurantId();
-
     if (!restaurantId) {
-        showError('No restaurant selected. Please go back and choose a restaurant.');
         hideSkeleton();
+        showError('No restaurant selected. Please go back and choose a restaurant.');
         return;
     }
-
     showSkeleton();
-
     try {
-        /**
-         * Parallel fetch:
-         * GET /api/restaurants/{id}
-         * GET /api/restaurants/{id}/categories  (public — no token needed)
-         * GET /api/restaurants/{id}/menu-items  (public — no token needed)
-         */
         const [restaurantRes, categoriesRes, menuRes] = await Promise.all([
             apiFetch(`/api/restaurants/${restaurantId}`),
             apiFetch(`/api/restaurants/${restaurantId}/categories`),
             apiFetch(`/api/restaurants/${restaurantId}/menu-items`)
         ]);
-
         if (!restaurantRes.ok) throw new Error(`Restaurant not found (${restaurantRes.status})`);
         if (!categoriesRes.ok) throw new Error(`Categories failed (${categoriesRes.status})`);
         if (!menuRes.ok)       throw new Error(`Menu failed (${menuRes.status})`);
@@ -95,20 +109,9 @@ async function loadMenuData() {
         allMenuItems     = await menuRes.json();
 
         hideSkeleton();
-
-        // Render hero
         renderHero(restaurant);
-
-        // Render category pills
         renderCategoryPills(allCategories);
-
-        // Render menu items
-        if (allMenuItems.length === 0) {
-            showEmpty();
-        } else {
-            renderMenu(allMenuItems, allCategories);
-        }
-
+        if (allMenuItems.length === 0) { showEmpty(); } else { renderMenu(allMenuItems, allCategories); }
     } catch (err) {
         console.error('Menu load error:', err);
         hideSkeleton();
@@ -119,11 +122,10 @@ async function loadMenuData() {
 // ─────────────────────────────────────────
 //   RENDER HERO
 // ─────────────────────────────────────────
-
 function renderHero(restaurant) {
     const emoji = FOOD_EMOJIS[restaurant.id % FOOD_EMOJIS.length];
-    document.getElementById('heroEmoji').textContent        = emoji;
-    document.getElementById('restaurantName').textContent   = restaurant.name;
+    document.getElementById('heroEmoji').textContent         = emoji;
+    document.getElementById('restaurantName').textContent    = restaurant.name;
     document.getElementById('restaurantAddress').textContent = '📍 ' + (restaurant.address || '--');
     document.getElementById('restaurantPhone').textContent   = '📞 ' + (restaurant.phone || '--');
     document.getElementById('restaurantDesc').textContent    = restaurant.description || '';
@@ -133,20 +135,15 @@ function renderHero(restaurant) {
 // ─────────────────────────────────────────
 //   RENDER CATEGORY PILLS
 // ─────────────────────────────────────────
-
 function renderCategoryPills(categories) {
     const bar = document.getElementById('categoryBar');
     bar.innerHTML = '';
-
-    // "All" pill
     const allPill = document.createElement('button');
     allPill.className = 'category-pill active';
     allPill.textContent = '🍽️ All Items';
-    allPill.onclick = () => filterByCategory('all');
     allPill.id = 'pill-all';
+    allPill.onclick = () => filterByCategory('all');
     bar.appendChild(allPill);
-
-    // One pill per category
     categories.forEach(cat => {
         const pill = document.createElement('button');
         pill.className = 'category-pill';
@@ -159,92 +156,63 @@ function renderCategoryPills(categories) {
 
 // ─────────────────────────────────────────
 //   RENDER MENU
-//   Groups items by category, shows sections
 // ─────────────────────────────────────────
-
 function renderMenu(items, categories) {
     const content = document.getElementById('menuContent');
     content.innerHTML = '';
     content.classList.remove('hidden');
     document.getElementById('emptyState').classList.add('hidden');
 
-    // Build a map: categoryId → category name
     const catMap = {};
     categories.forEach(c => { catMap[c.id] = c.name; });
-
-    // Group items by categoryId
     const groups = {};
     const uncategorized = [];
-
     items.forEach(item => {
         if (item.categoryId && catMap[item.categoryId]) {
             if (!groups[item.categoryId]) groups[item.categoryId] = [];
             groups[item.categoryId].push(item);
-        } else {
-            uncategorized.push(item);
-        }
+        } else { uncategorized.push(item); }
     });
 
-    // Render each category section
-    categories.forEach((cat, idx) => {
+    categories.forEach(cat => {
         const catItems = groups[cat.id];
         if (!catItems || catItems.length === 0) return;
-
         const section = document.createElement('div');
         section.id = `section-${cat.id}`;
         section.className = 'category-section';
-
         section.innerHTML = `
             <div class="category-section-title">
                 <span>${getCategoryEmoji(cat.name)}</span>
                 <span>${escapeHtml(cat.name)}</span>
-                <span class="text-sm font-dm font-normal text-ash">(${catItems.length} item${catItems.length !== 1 ? 's' : ''})</span>
+                <span style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;color:var(--ash)">(${catItems.length} item${catItems.length !== 1 ? 's' : ''})</span>
             </div>
-            <div class="space-y-3" id="items-${cat.id}"></div>
-        `;
-
+            <div class="space-y-3" id="items-${cat.id}"></div>`;
         content.appendChild(section);
-
-        const itemsContainer = document.getElementById(`items-${cat.id}`);
-        catItems.forEach((item, itemIdx) => {
-            const card = createMenuItemCard(item, itemIdx);
-            itemsContainer.appendChild(card);
-        });
+        const container = document.getElementById(`items-${cat.id}`);
+        catItems.forEach((item, idx) => container.appendChild(createMenuItemCard(item, idx)));
     });
 
-    // Uncategorized items
     if (uncategorized.length > 0) {
         const section = document.createElement('div');
         section.id = 'section-uncategorized';
         section.className = 'category-section';
-        section.innerHTML = `
-            <div class="category-section-title">
-                <span>🍴</span>
-                <span>More Items</span>
-            </div>
-            <div class="space-y-3" id="items-uncategorized"></div>
-        `;
+        section.innerHTML = `<div class="category-section-title"><span>🍴</span><span>More Items</span></div><div class="space-y-3" id="items-uncategorized"></div>`;
         content.appendChild(section);
         const container = document.getElementById('items-uncategorized');
-        uncategorized.forEach((item, idx) => {
-            container.appendChild(createMenuItemCard(item, idx));
-        });
+        uncategorized.forEach((item, idx) => container.appendChild(createMenuItemCard(item, idx)));
     }
 }
 
 // ─────────────────────────────────────────
 //   CREATE MENU ITEM CARD
 // ─────────────────────────────────────────
-
 function createMenuItemCard(item, index) {
-    const emoji = FOOD_EMOJIS[item.id % FOOD_EMOJIS.length];
-    const delay = index * 50;
-    const available = item.available !== false; // default to true if null
-
-    const card = document.createElement('div');
-    card.className = `menu-item-card${available ? '' : ' item-unavailable'}`;
-    card.style.animationDelay = `${delay}ms`;
-
+    const emoji     = FOOD_EMOJIS[item.id % FOOD_EMOJIS.length];
+    const available = item.available !== false;
+    const card      = document.createElement('div');
+    card.className  = `menu-item-card${available ? '' : ' item-unavailable'}`;
+    card.style.animationDelay = `${index * 50}ms`;
+    card.id = `menu-card-${item.id}`;
     card.innerHTML = `
         <div class="menu-item-emoji">${emoji}</div>
         <div class="menu-item-body">
@@ -255,30 +223,80 @@ function createMenuItemCard(item, index) {
             <div class="item-footer">
                 <div class="item-price">₹${Number(item.price).toFixed(2)}</div>
                 ${available
-        ? `<button class="btn-add" onclick="addToCart(${item.id}, '${escapeHtml(item.name)}', ${item.price})">
+        ? `<button class="btn-add" id="add-btn-${item.id}" onclick="addToCart(${item.id}, '${escapeHtml(item.name)}', ${item.price})">
                             <span>+</span> Add to Cart
                        </button>`
         : `<span class="unavailable-badge">Unavailable</span>`
     }
             </div>
-        </div>
-    `;
+        </div>`;
     return card;
 }
 
 // ─────────────────────────────────────────
-//   FILTER BY CATEGORY
+//   ADD TO CART — real backend
+//   POST /api/cart/add
+//   Body: { menuItemId, quantity }
 // ─────────────────────────────────────────
+async function addToCart(itemId, itemName, price) {
+    const btn = document.getElementById(`add-btn-${itemId}`);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="cart-spin"></span> Adding...`;
+    }
 
+    try {
+        const res = await apiFetch('/api/cart/add', {
+            method: 'POST',
+            body: JSON.stringify({ menuItemId: itemId, quantity: 1 })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            if (errText && errText.toLowerCase().includes('cart has items from')) {
+                showToast('error', '⚠️', errText);
+            } else if (res.status === 401 || res.status === 403) {
+                showToast('error', '🔒', 'Session expired. Please log in again.');
+                setTimeout(() => logout(), 1500);
+            } else {
+                showToast('error', '❌', errText || `Failed to add (${res.status})`);
+            }
+            return;
+        }
+
+        const cart = await res.json();
+        if (cart.items) {
+            const total = cart.items.reduce((s, i) => s + i.quantity, 0);
+            updateCartBadge(total);
+        }
+
+        showToast('success', '🛒', `"${itemName}" added to cart!`);
+
+        const badge = document.getElementById('cartCount');
+        if (badge) {
+            badge.style.transform = 'scale(1.5)';
+            setTimeout(() => badge.style.transform = '', 200);
+        }
+
+    } catch (err) {
+        console.error('Add to cart error:', err);
+        showToast('error', '❌', 'Could not connect to server.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span>+</span> Add to Cart`;
+        }
+    }
+}
+
+// ─────────────────────────────────────────
+//   FILTER
+// ─────────────────────────────────────────
 function filterByCategory(categoryId) {
     activeCategory = categoryId;
-
-    // Update pill styles
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-    const activePill = document.getElementById(`pill-${categoryId}`);
-    if (activePill) activePill.classList.add('active');
-
-    // Show/hide sections
+    const pill = document.getElementById(`pill-${categoryId}`);
+    if (pill) pill.classList.add('active');
     if (categoryId === 'all') {
         document.querySelectorAll('.category-section').forEach(s => s.style.display = '');
     } else {
@@ -289,93 +307,68 @@ function filterByCategory(categoryId) {
 }
 
 // ─────────────────────────────────────────
-//   ADD TO CART (toast only — backend later)
-// ─────────────────────────────────────────
-
-function addToCart(itemId, itemName, price) {
-    // Show toast — cart backend will be connected later
-    showToast('success', '🛒', `"${itemName}" added to cart!`);
-
-    // Animate cart count (UI only)
-    const cartCount = document.getElementById('cartCount');
-    cartCount.classList.remove('hidden');
-    const current = parseInt(cartCount.textContent) || 0;
-    cartCount.textContent = current + 1;
-    cartCount.style.transform = 'scale(1.4)';
-    setTimeout(() => cartCount.style.transform = '', 200);
-}
-
-// ─────────────────────────────────────────
 //   TOAST
 // ─────────────────────────────────────────
-
 let toastTimer;
-
 function showToast(type, icon, message) {
     clearTimeout(toastTimer);
     const toast = document.getElementById('toast');
     document.getElementById('toastIcon').textContent = icon;
     document.getElementById('toastMsg').textContent  = message;
-
     toast.className = `show ${type}`;
-
-    toastTimer = setTimeout(() => {
-        toast.className = type;
-    }, 2500);
-}
-
-// ─────────────────────────────────────────
-//   CATEGORY EMOJI HELPER
-// ─────────────────────────────────────────
-
-function getCategoryEmoji(name) {
-    const n = (name || '').toLowerCase();
-    if (n.includes('starter') || n.includes('appetizer')) return '🥗';
-    if (n.includes('main') || n.includes('course'))       return '🍛';
-    if (n.includes('veg'))                                 return '🥦';
-    if (n.includes('non') || n.includes('chicken') || n.includes('meat')) return '🍗';
-    if (n.includes('pizza'))   return '🍕';
-    if (n.includes('burger'))  return '🍔';
-    if (n.includes('noodle') || n.includes('pasta')) return '🍜';
-    if (n.includes('dessert') || n.includes('sweet')) return '🍰';
-    if (n.includes('drink') || n.includes('beverage')) return '🥤';
-    return '🍽️';
+    toastTimer = setTimeout(() => { toast.className = type; }, 2800);
 }
 
 // ─────────────────────────────────────────
 //   SKELETON / STATES
 // ─────────────────────────────────────────
-
 function showSkeleton() {
     document.getElementById('skeletonMenu').classList.remove('hidden');
     document.getElementById('menuContent').classList.add('hidden');
     document.getElementById('emptyState').classList.add('hidden');
     document.getElementById('errorState').classList.add('hidden');
 }
-
-function hideSkeleton() {
-    document.getElementById('skeletonMenu').classList.add('hidden');
-}
-
+function hideSkeleton() { document.getElementById('skeletonMenu').classList.add('hidden'); }
 function showEmpty() {
     document.getElementById('emptyState').classList.remove('hidden');
     document.getElementById('menuContent').classList.add('hidden');
 }
-
 function showError(msg) {
     document.getElementById('errorState').classList.remove('hidden');
     document.getElementById('errorMsg').textContent = msg;
 }
 
 // ─────────────────────────────────────────
-//   HELPER
+//   HELPERS
 // ─────────────────────────────────────────
-
+function getCategoryEmoji(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('starter') || n.includes('appetizer')) return '🥗';
+    if (n.includes('main') || n.includes('course'))        return '🍛';
+    if (n.includes('veg'))                                  return '🥦';
+    if (n.includes('non') || n.includes('chicken'))        return '🍗';
+    if (n.includes('pizza'))   return '🍕';
+    if (n.includes('burger'))  return '🍔';
+    if (n.includes('noodle') || n.includes('pasta')) return '🍜';
+    if (n.includes('dessert') || n.includes('sweet')) return '🍰';
+    if (n.includes('drink') || n.includes('beverage')) return '🥤';
+    if (n.includes('snack')) return '🍟';
+    return '🍽️';
+}
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// Spinner CSS for add button
+const s = document.createElement('style');
+s.textContent = `
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .cart-spin {
+        display: inline-block; width: 13px; height: 13px;
+        border: 2px solid rgba(255,255,255,.4);
+        border-top-color: white; border-radius: 50%;
+        animation: spin .6s linear infinite;
+    }
+`;
+document.head.appendChild(s);
