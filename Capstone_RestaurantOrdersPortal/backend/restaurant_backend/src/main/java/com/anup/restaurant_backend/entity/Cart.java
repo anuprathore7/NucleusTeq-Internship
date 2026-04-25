@@ -38,10 +38,13 @@ public class Cart {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
-    /**
-     *  ONE cart has MANY cart items
-     */
-    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
+    // 1. Add this field
+    @ManyToOne
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
+    // 3. Change your existing @OneToMany line to add orphanRemoval
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> items;
 
     /**
@@ -56,6 +59,10 @@ public class Cart {
     }
 
     // ================= GETTERS & SETTERS =================
+
+
+    public Restaurant getRestaurant() { return restaurant; }
+    public void setRestaurant(Restaurant restaurant) { this.restaurant = restaurant; }
 
     public Long getId() {
         return id;

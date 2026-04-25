@@ -25,11 +25,12 @@ public class JwtService {
     /**
      *  Generate token using email
      */
-    public String generateToken(String email) {
+    public String generateToken(String email, String role) {  // ← add role param
         return Jwts.builder()
-                .setSubject(email) // who is user
+                .setSubject(email)
+                .claim("role", role)           // ← ADD THIS LINE
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
                 .signWith(getSignKey())
                 .compact();
     }

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Food Mania — Sign In</title>
+    <link rel="stylesheet" href="../css/auth.css"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+
+<!-- BACKGROUND DECORATION -->
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+<div class="bg-orb orb-3"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="nav-brand">
+        <span class="nav-logo">🍽️</span>
+        <span class="nav-name">Food<strong>Mania</strong></span>
+    </div>
+    <div class="nav-tagline">Premium Food Ordering Experience</div>
+</nav>
+
+<!-- MAIN WRAPPER -->
+<main class="main-wrapper">
+
+    <!-- HERO TEXT -->
+    <div class="hero-section">
+        <div class="hero-badge">🌟 Trusted by 10,000+ food lovers</div>
+        <h1 class="hero-title">
+            Delicious Food,<br/>
+            <span class="hero-highlight">Delivered Fast</span>
+        </h1>
+        <p class="hero-sub">
+            Order from the best restaurants in your city.<br/>
+            Fresh, hot and right at your doorstep.
+        </p>
+        <div class="hero-stats">
+            <div class="stat"><span class="stat-num">100+</span><span class="stat-label">Restaurants</span></div>
+            <div class="stat-divider"></div>
+            <div class="stat"><span class="stat-num">50K+</span><span class="stat-label">Orders Placed</span></div>
+            <div class="stat-divider"></div>
+            <div class="stat"><span class="stat-num">₹1000</span><span class="stat-label">Free Wallet Credit</span></div>
+        </div>
+    </div>
+
+    <!-- FORM CARD -->
+    <div class="form-card">
+
+        <!-- TAB SWITCHER -->
+        <div class="tab-bar">
+            <button class="tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+            <button class="tab" id="tabRegister" onclick="switchTab('register')">Create Account</button>
+            <div class="tab-indicator" id="tabIndicator"></div>
+        </div>
+
+        <!-- ALERT -->
+        <div class="alert hidden" id="alertBox">
+            <span id="alertIcon"></span>
+            <span id="alertMsg"></span>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form class="form-body active" id="loginForm" onsubmit="return false">
+            <div class="form-title">Welcome back 👋</div>
+            <div class="form-subtitle">Sign in to continue your food journey</div>
+
+            <div class="field">
+                <label class="field-label">Email Address</label>
+                <div class="field-wrap">
+                    <span class="field-icon">✉️</span>
+                    <input class="field-input" type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"/>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label">Password</label>
+                <div class="field-wrap">
+                    <span class="field-icon">🔑</span>
+                    <input class="field-input" type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password"/>
+                    <button type="button" class="toggle-pw" onclick="togglePw('loginPassword', this)">👁️</button>
+                </div>
+            </div>
+
+            <button class="btn-primary" id="loginBtn" type="button" onclick="handleLogin()">
+                <span class="btn-text">Sign In</span>
+                <span class="btn-icon">→</span>
+                <span class="btn-loader hidden"></span>
+            </button>
+
+            <p class="form-footer">New here? <a href="#" onclick="switchTab('register')">Create a free account</a></p>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form class="form-body" id="registerForm" onsubmit="return false">
+            <div class="form-title">Join Food Mania 🎉</div>
+            <div class="form-subtitle">Create your account and get ₹1000 wallet credit free!</div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label class="field-label">First Name</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">👤</span>
+                        <input class="field-input" type="text" id="regFirstName" placeholder="Rahul" autocomplete="given-name"/>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Last Name</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">👤</span>
+                        <input class="field-input" type="text" id="regLastName" placeholder="Sharma" autocomplete="family-name"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label">Email Address</label>
+                <div class="field-wrap">
+                    <span class="field-icon">✉️</span>
+                    <input class="field-input" type="email" id="regEmail" placeholder="you@example.com" autocomplete="email"/>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label">Phone Number</label>
+                <div class="field-wrap">
+                    <span class="field-icon">📱</span>
+                    <input class="field-input" type="tel" id="regPhone" placeholder="9876543210" autocomplete="tel"/>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label">Password</label>
+                <div class="field-wrap">
+                    <span class="field-icon">🔑</span>
+                    <input class="field-input" type="password" id="regPassword" placeholder="Minimum 6 characters" autocomplete="new-password"/>
+                    <button type="button" class="toggle-pw" onclick="togglePw('regPassword', this)">👁️</button>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="field-label">I am joining as</label>
+                <div class="role-grid">
+                    <label class="role-option">
+                        <input type="radio" name="role" value="USER" checked/>
+                        <div class="role-box">
+                            <span class="role-emoji">🍽️</span>
+                            <span class="role-name">Customer</span>
+                            <span class="role-desc">Order food online</span>
+                        </div>
+                    </label>
+                    <label class="role-option">
+                        <input type="radio" name="role" value="RESTAURANT_OWNER"/>
+                        <div class="role-box">
+                            <span class="role-emoji">🏪</span>
+                            <span class="role-name">Restaurant Owner</span>
+                            <span class="role-desc">Manage your restaurant</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn-primary" id="registerBtn" type="button" onclick="handleRegister()">
+                <span class="btn-text">Create My Account</span>
+                <span class="btn-icon">→</span>
+                <span class="btn-loader hidden"></span>
+            </button>
+
+            <p class="form-footer">Already have an account? <a href="#" onclick="switchTab('login')">Sign in here</a></p>
+        </form>
+
+    </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <span>© 2025 Food Mania. All rights reserved.</span>
+    <span class="footer-dot">·</span>
+    <span>Made with ❤️ for food lovers</span>
+</footer>
+
+<script src="../js/auth.js"></script>
+</body>
+</html>

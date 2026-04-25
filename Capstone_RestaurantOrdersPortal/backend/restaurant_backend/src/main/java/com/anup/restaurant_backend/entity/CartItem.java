@@ -44,7 +44,10 @@ public class CartItem {
     private Integer quantity;
 
     /**
-     *  Total price for this item (price * quantity)
+     * Unit price at the time of adding to cart
+     * We store this separately because owner can change
+     * menu item price later — cart price should not change
+     * Subtotal (price x quantity) is calculated in service
      */
     private Double price;
 

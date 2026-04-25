@@ -28,7 +28,7 @@ public class UserEntity {
 
     @Enumerated(EnumType.STRING)
     private UserRole role;
-    // It will be the role weather it is User or Admin
+    // It will be the role weather it is User or Restaurant Owner
 
     private Double walletBalance;
     //  here users Balance will be generated.
