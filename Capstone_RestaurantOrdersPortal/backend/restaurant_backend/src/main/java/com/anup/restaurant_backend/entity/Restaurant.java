@@ -9,7 +9,6 @@ import java.util.List;
  *
  * This class represents restaurants in the system.
  *
- *  Real-life meaning:
  * A restaurant is owned by a user (RESTAURANT_OWNER)
  * and contains menu items, categories, etc.
  */
@@ -58,6 +57,9 @@ public class Restaurant {
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL)
     private List<Category> categories;
 
+    @Column(name = "image_path")
+    private String imagePath;
+
 
     /**
      *  Default constructor (required by JPA)
@@ -86,6 +88,12 @@ public class Restaurant {
     public String getName() {
         return name;
     }
+
+    // Getter
+    public String getImagePath() { return imagePath; }
+
+    // Setter
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 
     /**
      *  Flow:

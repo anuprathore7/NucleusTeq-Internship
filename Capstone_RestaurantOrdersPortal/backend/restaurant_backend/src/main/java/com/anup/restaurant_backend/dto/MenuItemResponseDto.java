@@ -5,15 +5,6 @@ package com.anup.restaurant_backend.dto;
  *   MenuItemResponseDTO
  * ============================================
  *
- *  WHAT DO WE SEND BACK TO FRONTEND?
- *
- * After adding/updating/fetching a menu item,
- * we send this clean response:
- *
- *  WHY NOT SEND THE FULL ENTITY?
- * Entity has nested objects (Restaurant, Category)
- * which can cause infinite loops in JSON serialization.
- * DTO is flat, clean, safe to send.
  */
 public class MenuItemResponseDto {
 

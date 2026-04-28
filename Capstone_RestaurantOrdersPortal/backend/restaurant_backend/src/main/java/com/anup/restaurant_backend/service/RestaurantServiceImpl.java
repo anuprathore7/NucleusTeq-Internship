@@ -96,18 +96,20 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
-    public List<RestaurantResponseDto> getRestaurantsByOwner(Long ownerId) {
+    public List<RestaurantResponseDto> getRestaurantsByOwnerToken(String token) {
 
-        log.info("Fetching restaurants for owner id: {}", ownerId);
+        String jwt = token.substring(7); // remove Bearer
 
-        List<RestaurantResponseDto> list = restaurantRepository.findByOwnerId(ownerId)
-                .stream()
+        String email = jwtService.extractEmail(jwt);
+
+        UserEntity owner = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Restaurant> restaurants = restaurantRepository.findByOwnerId(owner.getId());
+
+        return restaurants.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
-
-        log.info("Total restaurants found for owner {}: {}", ownerId, list.size());
-
-        return list;
     }
 
     /**
@@ -120,7 +122,8 @@ public class RestaurantServiceImpl implements RestaurantService {
                 r.getDescription(),
                 r.getAddress(),
                 r.getPhone(),
-                r.getOwner().getId()
+                r.getOwner().getId(),
+                r.getImagePath()
         );
     }
 
@@ -167,4 +170,27 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurantRepository.deleteById(id);
         log.info("Restaurant deleted successfully");
     }
+
+    @Override
+    public RestaurantResponseDto updateRestaurantImage(Long id, String imagePath, String token) {
+        String email = jwtService.extractEmail(token.substring(7));
+
+        UserEntity owner = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
+
+        if (!restaurant.getOwner().getId().equals(owner.getId())) {
+            throw new RuntimeException("You are not authorized to update this restaurant");
+        }
+
+        restaurant.setImagePath(imagePath);
+        Restaurant updated = restaurantRepository.save(restaurant);
+
+        log.info("Owner '{}' updated image for restaurantId: {}", email, id);
+        return mapToResponse(updated);
+    }
+
+
 }

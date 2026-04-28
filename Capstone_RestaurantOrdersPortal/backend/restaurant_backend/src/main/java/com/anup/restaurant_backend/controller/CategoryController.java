@@ -10,9 +10,6 @@ import java.util.List;
 /**
  * CategoryController
  *
- * URL pattern: /api/restaurants/{restaurantId}/categories
- * Follows the EXACT same style as your RestaurantController:
- * → Token passed via @RequestHeader("Authorization")
  *
  */
 @RestController

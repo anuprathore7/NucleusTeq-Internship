@@ -6,9 +6,6 @@ import jakarta.persistence.*;
  * Address Entity
  * This class represents the "addresses" table in database.
  * It stores delivery locations of users.
- *
- * Real-life meaning:
- * One user can have multiple addresses (home, office, etc.)
  */
 @Entity
 @Table(name = "addresses")

@@ -55,13 +55,6 @@ import com.anup.restaurant_backend.service.CartService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * CartController - Updated
- *
- * KEY FIX: getCart now returns 200 with empty cart
- * instead of throwing 404 when cart is empty.
- * Frontend needs this to show "cart is empty" state.
- */
 @RestController
 @RequestMapping("/api/cart")
 public class CartController {
@@ -81,7 +74,7 @@ public class CartController {
 
     /**
      * GET CART — returns empty cart response if no cart exists
-     * Frontend checks: if items.length === 0 → show empty state
+     *  if items.length === 0 → show empty state
      */
     @GetMapping
     public ResponseEntity<?> getCart(

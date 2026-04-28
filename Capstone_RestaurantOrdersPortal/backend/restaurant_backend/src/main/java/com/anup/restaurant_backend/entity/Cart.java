@@ -9,13 +9,6 @@ import java.util.List;
  *  Real-life meaning:
  * This is the user's shopping cart
  * → where selected food items are stored before placing order
- *
- * Example:
- * User adds:
- * → Pizza
- * → Coke
- * → Burger
- *
  * All go inside Cart
  */
 @Entity

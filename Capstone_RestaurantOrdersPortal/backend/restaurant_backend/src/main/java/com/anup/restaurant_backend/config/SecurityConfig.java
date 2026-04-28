@@ -80,7 +80,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                // ✅ FIX 1: Enable CORS — tells Spring Security to use your CorsFilter bean
+                //  Enable CORS — tells Spring Security to use your CorsFilter bean
                 .cors(Customizer.withDefaults())
 
                 // Disable CSRF (REST APIs don't need it)
@@ -90,8 +90,8 @@ public class SecurityConfig {
                         // Public endpoints — no token needed
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/restaurants/**").permitAll()
+                        .requestMatchers("/images/**").permitAll()
 
-                        // ✅ FIX 2: Allow OPTIONS preflight for ALL routes
                         // Browser sends OPTIONS before every cross-origin POST/PUT/DELETE
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
 

@@ -3,11 +3,6 @@
  *   Food Mania — Cart Page JS
  * ============================================
  *
- *  APIs:
- *  GET    /api/cart                            → get cart
- *  PUT    /api/cart/update/{cartItemId}?quantity=N → update qty
- *  DELETE /api/cart/remove/{cartItemId}        → remove one item
- *  DELETE /api/cart/clear                      → clear all
  */
 
 const FOOD_EMOJIS = ['🍕','🍔','🍜','🍣','🌮','🍛','🍱','🥗','🍗','🥪','🧆','🥘','🍲','🥙','🌯'];
@@ -36,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────
 function setupNavbar() {
     const email = getEmail() || 'Account';
-    document.getElementById('userEmailNav').textContent = email.split('@')[0];
+    document.getElementById('userEmailNav').textContent  = email.split('@')[0];
     document.getElementById('userEmailDrop').textContent = email;
 }
 function toggleUserMenu() {
@@ -44,15 +39,13 @@ function toggleUserMenu() {
 }
 
 // ─────────────────────────────────────────
-//   LOAD CART
-//   GET /api/cart
+//   LOAD CART  — GET /api/cart
 // ─────────────────────────────────────────
 async function loadCart() {
     showSkeleton();
     try {
         const res = await apiFetch('/api/cart');
 
-        if (res.status === 404) { hideSkeleton(); showEmpty(); return; }
         if (!res.ok) {
             const err = await res.text();
             throw new Error(err || `Server error ${res.status}`);
@@ -62,7 +55,12 @@ async function loadCart() {
         currentCart = cart;
         hideSkeleton();
 
-        if (!cart.items || cart.items.length === 0) { showEmpty(); return; }
+        // Empty cart: items null or length 0
+        if (!cart.items || cart.items.length === 0) {
+            showEmpty();
+            return;
+        }
+
         renderCart(cart);
 
     } catch (err) {
@@ -84,10 +82,7 @@ function renderCart(cart) {
 
     const list = document.getElementById('cartItemsList');
     list.innerHTML = '';
-    cart.items.forEach((item, idx) => {
-        const card = createCartCard(item, idx);
-        list.appendChild(card);
-    });
+    cart.items.forEach((item, idx) => list.appendChild(createCartCard(item, idx)));
 
     updateSummary(cart);
 }
@@ -97,13 +92,11 @@ function renderCart(cart) {
 // ─────────────────────────────────────────
 function createCartCard(item, index) {
     const emoji = FOOD_EMOJIS[item.menuItemId % FOOD_EMOJIS.length];
-    const delay = index * 60;
 
     const card = document.createElement('div');
     card.className = 'cart-card fade-in';
     card.id = `cart-item-${item.cartItemId}`;
-    card.style.animationDelay = `${delay}ms`;
-    card.style.transition = 'opacity .25s, transform .25s';
+    card.style.animationDelay = `${index * 60}ms`;
 
     card.innerHTML = `
         <div class="cc-emoji">${emoji}</div>
@@ -116,7 +109,7 @@ function createCartCard(item, index) {
                 onclick="changeQty(${item.cartItemId}, ${item.quantity}, -1)"
                 ${item.quantity <= 1 ? 'disabled' : ''}>−</button>
             <div class="cc-qty-num" id="qty-${item.cartItemId}">${item.quantity}</div>
-            <button class="cc-qty-btn"
+            <button class="cc-qty-btn" id="plus-${item.cartItemId}"
                 onclick="changeQty(${item.cartItemId}, ${item.quantity}, 1)">+</button>
         </div>
         <div class="cc-subtotal" id="sub-${item.cartItemId}">₹${Number(item.subtotal).toFixed(2)}</div>
@@ -126,13 +119,13 @@ function createCartCard(item, index) {
 }
 
 // ─────────────────────────────────────────
-//   UPDATE SUMMARY PANEL
+//   UPDATE SUMMARY
 // ─────────────────────────────────────────
 function updateSummary(cart) {
-    const subtotal  = cart.totalAmount || 0;
-    const tax       = subtotal * 0.05;
+    const subtotal   = cart.totalAmount || 0;
+    const tax        = subtotal * 0.05;
     const grandTotal = subtotal + tax;
-    const itemCount = (cart.items || []).reduce((s, i) => s + i.quantity, 0);
+    const itemCount  = (cart.items || []).reduce((s, i) => s + i.quantity, 0);
 
     document.getElementById('summaryCount').textContent    = itemCount;
     document.getElementById('summarySubtotal').textContent = `₹${subtotal.toFixed(2)}`;
@@ -143,15 +136,24 @@ function updateSummary(cart) {
 // ─────────────────────────────────────────
 //   CHANGE QUANTITY
 //   PUT /api/cart/update/{cartItemId}?quantity=N
+//
+//   KEY FIX: The onclick passes the CURRENT quantity
+//   from the DOM, not from a stale variable.
+//   After each update we REFRESH the onclick handlers
+//   so the next click always has the latest qty.
 // ─────────────────────────────────────────
 async function changeQty(cartItemId, currentQty, delta) {
     const newQty = currentQty + delta;
     if (newQty < 1) return;
 
-    // Disable both qty buttons while request is in flight
+    // Disable both buttons immediately
     setQtyDisabled(cartItemId, true);
 
     try {
+        /**
+         * PUT /api/cart/update/{cartItemId}?quantity=N
+         * NOTE: quantity is a @RequestParam — must be in URL, NOT body
+         */
         const res = await apiFetch(`/api/cart/update/${cartItemId}?quantity=${newQty}`, {
             method: 'PUT'
         });
@@ -164,15 +166,27 @@ async function changeQty(cartItemId, currentQty, delta) {
         const updatedCart = await res.json();
         currentCart = updatedCart;
 
-        // Update only this item's display
+        // Find updated item
         const updatedItem = updatedCart.items.find(i => i.cartItemId === cartItemId);
         if (updatedItem) {
-            document.getElementById(`qty-${cartItemId}`).textContent  = updatedItem.quantity;
-            document.getElementById(`sub-${cartItemId}`).textContent  = `₹${Number(updatedItem.subtotal).toFixed(2)}`;
-            // Disable minus if qty=1
+            // Update displayed qty
+            document.getElementById(`qty-${cartItemId}`).textContent = updatedItem.quantity;
+            // Update subtotal
+            document.getElementById(`sub-${cartItemId}`).textContent = `₹${Number(updatedItem.subtotal).toFixed(2)}`;
+
+            // ── KEY FIX: Re-wire onclick with the NEW quantity ──
+            // Without this, the next click would still pass the OLD qty
             const minusBtn = document.getElementById(`minus-${cartItemId}`);
-            if (minusBtn) minusBtn.disabled = updatedItem.quantity <= 1;
+            const plusBtn  = document.getElementById(`plus-${cartItemId}`);
+            if (minusBtn) {
+                minusBtn.disabled = updatedItem.quantity <= 1;
+                minusBtn.onclick = () => changeQty(cartItemId, updatedItem.quantity, -1);
+            }
+            if (plusBtn) {
+                plusBtn.onclick = () => changeQty(cartItemId, updatedItem.quantity, 1);
+            }
         }
+
         updateSummary(updatedCart);
 
     } catch (err) {
@@ -183,9 +197,10 @@ async function changeQty(cartItemId, currentQty, delta) {
 }
 
 function setQtyDisabled(cartItemId, disabled) {
-    const card = document.getElementById(`cart-item-${cartItemId}`);
-    if (!card) return;
-    card.querySelectorAll('.cc-qty-btn').forEach(b => b.disabled = disabled);
+    ['minus', 'plus'].forEach(prefix => {
+        const btn = document.getElementById(`${prefix}-${cartItemId}`);
+        if (btn) btn.disabled = disabled;
+    });
 }
 
 // ─────────────────────────────────────────
@@ -194,7 +209,10 @@ function setQtyDisabled(cartItemId, disabled) {
 // ─────────────────────────────────────────
 async function removeItem(cartItemId) {
     const card = document.getElementById(`cart-item-${cartItemId}`);
-    if (card) { card.style.opacity = '0'; card.style.transform = 'translateX(30px)'; }
+    if (card) {
+        card.style.opacity   = '0';
+        card.style.transform = 'translateX(30px)';
+    }
 
     try {
         const res = await apiFetch(`/api/cart/remove/${cartItemId}`, { method: 'DELETE' });
@@ -217,6 +235,7 @@ async function removeItem(cartItemId) {
         } else {
             updateSummary(updatedCart);
         }
+
         showToast('info', '🗑️', 'Item removed.');
 
     } catch (err) {
@@ -225,10 +244,9 @@ async function removeItem(cartItemId) {
 }
 
 // ─────────────────────────────────────────
-//   CLEAR CART
-//   DELETE /api/cart/clear
+//   CLEAR CART — DELETE /api/cart/clear
 // ─────────────────────────────────────────
-function openClearModal() { document.getElementById('modalClear').classList.remove('hidden'); }
+function openClearModal()  { document.getElementById('modalClear').classList.remove('hidden'); }
 function closeClearModal() { document.getElementById('modalClear').classList.add('hidden'); }
 
 async function clearCart() {
@@ -247,10 +265,56 @@ async function clearCart() {
 }
 
 // ─────────────────────────────────────────
-//   PLACE ORDER (backend coming later)
+//   PLACE ORDER
+//   POST /api/orders/place
+//   No body — backend reads cart from JWT token
 // ─────────────────────────────────────────
-function placeOrder() {
-    showToast('info', '🚧', 'Order placement coming soon!');
+async function placeOrder() {
+    const btn = document.getElementById('checkoutBtn');
+    btn.classList.add('loading');
+    btn.innerHTML = `<span class="spinner"></span> Placing Order...`;
+
+    try {
+        /**
+         * POST /api/orders/place
+         * Header: Authorization: Bearer <token>
+         * No body needed — backend reads cart from JWT user
+         * Returns: OrderResponseDto { orderId, restaurantName, items, totalAmount, status, createdAt }
+         */
+        const res = await apiFetch('/api/orders/place', { method: 'POST' });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            // Parse JSON error if backend sends it
+            let errMsg = errText;
+            try {
+                const errJson = JSON.parse(errText);
+                errMsg = errJson.message || errJson.error || errText;
+            } catch {}
+            throw new Error(errMsg);
+        }
+
+        const order = await res.json();
+
+        // Show success modal
+        document.getElementById('successOrderId').textContent = `Order #${order.orderId}`;
+        document.getElementById('modalOrderSuccess').classList.remove('hidden');
+
+        // Hide cart content
+        document.getElementById('cartContent').style.display = 'none';
+        currentCart = null;
+
+    } catch (err) {
+        showToast('error', '❌', err.message || 'Failed to place order. Please try again.');
+    } finally {
+        btn.classList.remove('loading');
+        btn.innerHTML = `Place Order →`;
+    }
+}
+
+function goToOrders() {
+    document.getElementById('modalOrderSuccess').classList.add('hidden');
+    window.location.href = 'orders.html';
 }
 
 // ─────────────────────────────────────────
@@ -264,9 +328,9 @@ function showSkeleton() {
 }
 function hideSkeleton() { document.getElementById('skeletonCart').style.display = 'none'; }
 function showEmpty() {
-    document.getElementById('emptyCart').style.display = '';
+    document.getElementById('emptyCart').style.display   = '';
     document.getElementById('cartContent').style.display = 'none';
-    document.getElementById('errorCart').style.display = 'none';
+    document.getElementById('errorCart').style.display   = 'none';
 }
 function showError(msg) {
     document.getElementById('errorCart').style.display = '';

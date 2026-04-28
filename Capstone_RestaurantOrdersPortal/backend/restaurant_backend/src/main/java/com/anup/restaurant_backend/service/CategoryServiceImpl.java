@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 /**
  * CategoryServiceImpl
  *
- * Follows the EXACT same pattern as your RestaurantServiceImpl:
  * → Token comes from controller
  * → We do: token.substring(7) to remove "Bearer "
  * → Then extract email using jwtService.extractEmail()

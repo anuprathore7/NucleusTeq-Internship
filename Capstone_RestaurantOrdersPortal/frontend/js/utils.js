@@ -34,13 +34,21 @@ function logout() {
 
 async function apiFetch(endpoint, options = {}) {
     const token = getToken();
+
+    const headers = {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+    };
+
+    // ❌ Only add JSON header if body is NOT FormData
+    if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
+
     const res = await fetch(`${BASE_URL}${endpoint}`, {
         ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            ...(options.headers || {})
-        }
+        headers
     });
+
     return res;
 }

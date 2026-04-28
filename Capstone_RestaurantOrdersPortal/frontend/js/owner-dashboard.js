@@ -21,6 +21,11 @@ let confirmCallback    = null;
 //   PAGE INIT
 // ─────────────────────────────────────────
 
+// Prevent browser back button from going to restaurants page
+history.pushState(null, '', window.location.href);
+window.addEventListener('popstate', () => {
+    history.pushState(null, '', window.location.href);
+});
 document.addEventListener('DOMContentLoaded', () => {
     requireAuth();
 
@@ -64,11 +69,13 @@ function toggleUserMenu() {
 function getOwnerId() {
     const token = getToken();
     if (!token) return null;
+
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        // Try common JWT claim names for user id
-        return payload.userId || payload.id || payload.sub_id || null;
-    } catch { return null; }
+        return payload.sub; //  THIS IS THE CORRECT FIELD (standard JWT)
+    } catch {
+        return null;
+    }
 }
 
 // ─────────────────────────────────────────
@@ -77,23 +84,23 @@ function getOwnerId() {
 // ─────────────────────────────────────────
 
 async function loadMyRestaurants() {
-    const ownerId = getOwnerId();
-    // If JWT doesn't have userId, fall back to fetching all and filtering
-    // OR rely on backend returning only owned restaurants
-
-    let url = '/api/restaurants';
-    if (ownerId) {
-        url = `/api/restaurants/owner/${ownerId}`;
-    }
-
     try {
-        const res = await apiFetch(url);
-        if (!res.ok) throw new Error(`Server error ${res.status}`);
-        let data = await res.json();
+        const ownerId = getOwnerId();
 
-        // If we fetched all restaurants (no ownerId in token), just show all
-        // (backend should have filtered by owner via the token on secured routes)
-        myRestaurants = Array.isArray(data) ? data : [data];
+        if (!ownerId) {
+            console.error("Owner ID missing in token");
+            document.getElementById('sidebarRestaurantList').innerHTML =
+                `<p class="text-xs text-red-500 px-2">Session error. Please login again.</p>`;
+            return;
+        }
+
+        const res = await apiFetch(`/api/restaurants/owner`);
+
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+        const data = await res.json();
+
+        myRestaurants = Array.isArray(data) ? data : [];
 
         renderSidebarRestaurants(myRestaurants);
 
@@ -346,26 +353,22 @@ function renderMenuItemsTable(items) {
 // ─────────────────────────────────────────
 //   RESTAURANT MODALS
 // ─────────────────────────────────────────
-
 function openAddRestaurantModal() {
     document.getElementById('modalRestaurantTitle').textContent = 'Add Restaurant';
     document.getElementById('mRestName').value    = '';
     document.getElementById('mRestDesc').value    = '';
     document.getElementById('mRestAddress').value = '';
     document.getElementById('mRestPhone').value   = '';
+    document.getElementById('mRestImage').value   = '';  // ← clear file picker
     openModal('modalRestaurant');
 }
 
-/**
- * POST /api/restaurants
- * Body: { name, description, address, phone }
- * Header: Authorization: Bearer <token>
- */
 async function submitRestaurant() {
     const name        = document.getElementById('mRestName').value.trim();
     const description = document.getElementById('mRestDesc').value.trim();
     const address     = document.getElementById('mRestAddress').value.trim();
     const phone       = document.getElementById('mRestPhone').value.trim();
+    const imageFile   = document.getElementById('mRestImage').files[0]; // undefined if not picked
 
     if (!name || !address || !phone) {
         showToast('error', '⚠️', 'Name, address and phone are required.');
@@ -373,6 +376,7 @@ async function submitRestaurant() {
     }
 
     try {
+        // ── STEP 1: Create the restaurant with JSON ───────────────────
         const res = await apiFetch('/api/restaurants', {
             method: 'POST',
             body: JSON.stringify({ name, description, address, phone })
@@ -383,14 +387,36 @@ async function submitRestaurant() {
             throw new Error(err || `Error ${res.status}`);
         }
 
-        const newRestaurant = await res.json();
+        let newRestaurant = await res.json();
+        // At this point newRestaurant.imagePath is null — that's expected
+
+        // ── STEP 2: Upload image if user selected one ─────────────────
+        if (imageFile) {
+            showToast('info', '⏳', 'Uploading image...');
+
+            const formData = new FormData();
+            formData.append('file', imageFile);
+
+            const imgRes = await fetch(`http://localhost:8000/api/restaurants/${newRestaurant.id}/image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`
+                    // ❌ DO NOT add Content-Type here
+                },
+                body: formData
+            });
+
+            if (!imgRes.ok) {
+                console.error('Image upload failed:', imgRes.status);
+                showToast('error', '⚠️', 'Restaurant saved, but image upload failed.');
+            } else {
+                newRestaurant = await imgRes.json();
+                showToast('success', '✅', `"${name}" added with image!`);
+            }
+        }
+
         closeModal('modalRestaurant');
-        showToast('success', '✅', `"${name}" added successfully!`);
-
-        // Refresh restaurant list
         await loadMyRestaurants();
-
-        // Auto-select the new restaurant
         selectRestaurant(newRestaurant);
 
     } catch (err) {

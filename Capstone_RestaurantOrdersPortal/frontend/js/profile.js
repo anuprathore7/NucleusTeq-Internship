@@ -1,9 +1,7 @@
 /**
  * Food Mania — Profile Page JS
  *
- * APIs used:
- * GET /api/users/profile  → name, email, phone, role, walletBalance
- * GET /api/orders/my-orders → recent orders + stats
+
  */
 
 document.addEventListener('DOMContentLoaded', () => {

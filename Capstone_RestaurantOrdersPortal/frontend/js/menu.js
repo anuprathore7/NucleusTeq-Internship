@@ -252,19 +252,33 @@ async function addToCart(itemId, itemName, price) {
         });
 
         if (!res.ok) {
-            const errText = await res.text();
-            if (errText && errText.toLowerCase().includes('cart has items from')) {
-                showToast('error', '⚠️', errText);
-            } else if (res.status === 401 || res.status === 403) {
+            let message = 'Something went wrong';
+
+            try {
+                const errJson = await res.json(); // ✅ parse JSON directly
+                message = errJson.message || message;
+            } catch {
+                const text = await res.text();
+                message = text || message;
+            }
+
+            //  CLEAN CUSTOM MESSAGE
+            if (message.toLowerCase().includes('one restaurant')) {
+                message = 'You can add food items from one restaurant only.';
+            }
+
+            if (res.status === 401 || res.status === 403) {
                 showToast('error', '🔒', 'Session expired. Please log in again.');
                 setTimeout(() => logout(), 1500);
             } else {
-                showToast('error', '❌', errText || `Failed to add (${res.status})`);
+                showToast('error', '⚠️', message);
             }
+
             return;
         }
 
         const cart = await res.json();
+
         if (cart.items) {
             const total = cart.items.reduce((s, i) => s + i.quantity, 0);
             updateCartBadge(total);

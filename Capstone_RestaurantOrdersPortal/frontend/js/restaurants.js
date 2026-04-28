@@ -1,48 +1,36 @@
 /**
- * ============================================
- *   Food Mania — Restaurants Page JS
- * ============================================
- *
+ * Food Mania — Restaurants Page JS
+ * FIXED: Wallet balance fetches from /api/users/profile
  */
 
-// All restaurants from API stored here for filtering
 let allRestaurants = [];
-
-// Food emojis — assigned by restaurant id for consistency
-const FOOD_EMOJIS = ['🍕', '🍔', '🍜', '🍣', '🌮', '🍛', '🍱', '🥗', '🍗', '🥪'];
-
-// ─────────────────────────────────────────
-//   PAGE INIT
-// ─────────────────────────────────────────
+const FOOD_EMOJIS  = ['🍕','🍔','🍜','🍣','🌮','🍛','🍱','🥗','🍗','🥪'];
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Step 1: Check authentication
     requireAuth();
 
-    // Step 2: Set up navbar user info
+    // Owner redirect
+    if (getRole() === 'RESTAURANT_OWNER') {
+        window.location.replace('owner-dashboard.html');
+        return;
+    }
+
     setupNavbar();
-
-    // Step 3: Load restaurants
     loadRestaurants();
+    loadWalletBalance(); // ← fetch and show wallet
 
-    // Step 4: Close dropdown on outside click
     document.addEventListener('click', (e) => {
         const menu = document.getElementById('userMenu');
-        if (!menu.contains(e.target)) {
-            document.getElementById('userDropdown').classList.add('hidden');
+        if (menu && !menu.contains(e.target)) {
+            document.getElementById('userDropdown')?.classList.add('hidden');
         }
     });
 });
 
-// ─────────────────────────────────────────
-//   NAVBAR SETUP
-// ─────────────────────────────────────────
-
+// ── NAVBAR ──────────────────────────────
 function setupNavbar() {
     const email = getEmail() || 'Account';
-    const shortEmail = email.split('@')[0]; // show just username part
-
-    document.getElementById('userEmailNav').textContent = shortEmail;
+    document.getElementById('userEmailNav').textContent  = email.split('@')[0];
     document.getElementById('userEmailDrop').textContent = email;
 }
 
@@ -50,35 +38,55 @@ function toggleUserMenu() {
     document.getElementById('userDropdown').classList.toggle('hidden');
 }
 
-// ─────────────────────────────────────────
-//   LOAD RESTAURANTS FROM BACKEND
-// ─────────────────────────────────────────
+// ── WALLET BALANCE ───────────────────────
+/**
+ * Calls GET /api/users/profile
+ * Gets walletBalance from response
+ * Updates the wallet badge in navbar
+ */
+async function loadWalletBalance() {
+    try {
+        const res = await apiFetch('/api/users/profile');
+        if (!res.ok) return;
 
+        const data = await res.json();
+        const balance = data.walletBalance ?? 0;
+
+        // Update wallet badge
+        const walletEl = document.getElementById('walletBadge');
+        if (walletEl) {
+            walletEl.textContent = `₹${Number(balance).toFixed(0)}`;
+        }
+
+        // Cache in localStorage for other pages
+        localStorage.setItem('fm_wallet',     balance);
+        localStorage.setItem('fm_firstName',  data.firstName || '');
+        localStorage.setItem('fm_lastName',   data.lastName || '');
+        localStorage.setItem('fm_role',       data.role || getRole());
+
+    } catch (err) {
+        console.warn('Could not load wallet balance:', err);
+        // Show cached value if available
+        const cached = localStorage.getItem('fm_wallet');
+        const walletEl = document.getElementById('walletBadge');
+        if (cached && walletEl) {
+            walletEl.textContent = `₹${Number(cached).toFixed(0)}`;
+        }
+    }
+}
+
+// ── LOAD RESTAURANTS ─────────────────────
 async function loadRestaurants() {
     showSkeleton();
-
     try {
-        /**
-         *  GET /api/restaurants
-         * Returns: [ { id, name, description, address, phone, ownerId }, ... ]
-         * Needs JWT token — apiFetch adds it automatically
-         */
-        const response = await apiFetch('/api/restaurants');
+        const res = await apiFetch('/api/restaurants');
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-
-        const restaurants = await response.json();
+        const restaurants = await res.json();
         allRestaurants = restaurants;
-
         hideSkeleton();
 
-        if (restaurants.length === 0) {
-            showEmpty();
-            return;
-        }
-
+        if (restaurants.length === 0) { showEmpty(); return; }
         renderRestaurants(restaurants);
 
     } catch (err) {
@@ -88,10 +96,7 @@ async function loadRestaurants() {
     }
 }
 
-// ─────────────────────────────────────────
-//   RENDER RESTAURANT CARDS
-// ─────────────────────────────────────────
-
+// ── RENDER ───────────────────────────────
 function renderRestaurants(restaurants) {
     const grid = document.getElementById('restaurantGrid');
     grid.innerHTML = '';
@@ -99,66 +104,77 @@ function renderRestaurants(restaurants) {
 
     document.getElementById('emptyState').classList.add('hidden');
     document.getElementById('errorState').classList.add('hidden');
-
-    // Update count
     document.getElementById('restaurantCount').textContent =
         `${restaurants.length} restaurant${restaurants.length !== 1 ? 's' : ''} available`;
 
     restaurants.forEach((r, index) => {
-        const card = createRestaurantCard(r, index);
-        grid.appendChild(card);
+        grid.appendChild(createRestaurantCard(r, index));
     });
 }
 
 function createRestaurantCard(restaurant, index) {
-    // Pick emoji based on restaurant id for consistency
     const emoji = FOOD_EMOJIS[restaurant.id % FOOD_EMOJIS.length];
-
-    // Animation delay for staggered entrance
-    const delay = index * 60;
 
     const card = document.createElement('div');
     card.className = 'restaurant-card';
-    card.style.animationDelay = `${delay}ms`;
-    card.style.animation = `fadeInUp .4s ease both ${delay}ms`;
+    card.style.animation = `fadeInUp .4s ease both ${index * 60}ms`;
+
+    const imageUrl = restaurant.imagePath
+        ? `http://localhost:8000${restaurant.imagePath}`
+        : null;
 
     card.innerHTML = `
-        <!-- Card Image / Emoji Area -->
-        <div class="card-img">
-            <span style="font-size:64px; z-index:1; position:relative;">${emoji}</span>
-        </div>
+        <div class="card-img" style="position:relative;overflow:hidden;border-radius:12px 12px 0 0;height:160px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;">
+            
+            ${
+        imageUrl
+            ? `<img 
+                        src="${imageUrl}" 
+                        alt="${escapeHtml(restaurant.name)}"
+                        style="width:100%;height:100%;object-fit:cover;"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                   />`
+            : ''
+    }
 
-        <!-- Card Body -->
-        <div class="card-body">
-
-            <!-- Name + Status -->
-            <div class="flex items-start justify-between gap-2 mb-2">
-                <h3 class="card-name">${escapeHtml(restaurant.name)}</h3>
-                <span class="card-status status-open flex-shrink-0">
-                    <span>●</span> Open
-                </span>
+            <!-- Emoji fallback -->
+            <div style="
+                display:${imageUrl ? 'none' : 'flex'};
+                align-items:center;
+                justify-content:center;
+                width:100%;
+                height:100%;
+                font-size:64px;
+            ">
+                ${emoji}
             </div>
 
-            <!-- Description -->
-            <p class="card-desc">${escapeHtml(restaurant.description || 'Delicious food awaits!')}</p>
+        </div>
 
-            <!-- Address + Phone -->
+        <div class="card-body">
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="card-name">${escapeHtml(restaurant.name)}</h3>
+                <span class="card-status status-open flex-shrink-0">● Open</span>
+            </div>
+
+            <p class="card-desc">
+                ${escapeHtml(restaurant.description || 'Delicious food awaits!')}
+            </p>
+
             <div class="card-meta">
                 <div class="card-address">
                     <span>📍</span>
                     <span>${escapeHtml(restaurant.address)}</span>
                 </div>
-                <div class="flex items-center gap-1 text-xs text-ash">
+
+                <div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ash)">
                     <span>📞</span>
                     <span>${escapeHtml(restaurant.phone)}</span>
                 </div>
             </div>
 
-            <!-- Order Button -->
-            <button
-                class="btn-order"
-                onclick="goToMenu(${restaurant.id}, '${escapeHtml(restaurant.name)}')"
-            >
+            <button class="btn-order"
+                onclick="goToMenu(${restaurant.id}, '${escapeHtml(restaurant.name)}')">
                 View Menu & Order →
             </button>
         </div>
@@ -167,43 +183,26 @@ function createRestaurantCard(restaurant, index) {
     return card;
 }
 
-// ─────────────────────────────────────────
-//   NAVIGATE TO MENU
-// ─────────────────────────────────────────
-
 function goToMenu(restaurantId, restaurantName) {
-    // Save restaurant info so menu page can use it
-    localStorage.setItem('fm_restaurant_id', restaurantId);
+    localStorage.setItem('fm_restaurant_id',   restaurantId);
     localStorage.setItem('fm_restaurant_name', restaurantName);
     window.location.href = `menu.html?restaurantId=${restaurantId}`;
 }
 
-// ─────────────────────────────────────────
-//   SEARCH
-// ─────────────────────────────────────────
-
+// ── SEARCH ───────────────────────────────
 function filterRestaurants() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    applyFilter(query);
+    applyFilter(document.getElementById('searchInput').value.toLowerCase());
 }
-
 function filterRestaurantsMobile() {
-    const query = document.getElementById('searchInputMobile').value.toLowerCase();
-    applyFilter(query);
+    applyFilter(document.getElementById('searchInputMobile')?.value.toLowerCase() || '');
 }
-
 function applyFilter(query) {
-    if (!query) {
-        renderRestaurants(allRestaurants);
-        return;
-    }
-
+    if (!query) { renderRestaurants(allRestaurants); return; }
     const filtered = allRestaurants.filter(r =>
         r.name.toLowerCase().includes(query) ||
-        r.description?.toLowerCase().includes(query) ||
+        (r.description || '').toLowerCase().includes(query) ||
         r.address.toLowerCase().includes(query)
     );
-
     if (filtered.length === 0) {
         document.getElementById('restaurantGrid').classList.add('hidden');
         document.getElementById('emptyState').classList.remove('hidden');
@@ -214,62 +213,37 @@ function applyFilter(query) {
     }
 }
 
-// ─────────────────────────────────────────
-//   SORT
-// ─────────────────────────────────────────
-
+// ── SORT ─────────────────────────────────
 function sortRestaurants(value) {
     let sorted = [...allRestaurants];
-
-    if (value === 'name') {
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (value === 'name-desc') {
-        sorted.sort((a, b) => b.name.localeCompare(a.name));
-    }
-
+    if (value === 'name')      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    if (value === 'name-desc') sorted.sort((a, b) => b.name.localeCompare(a.name));
     renderRestaurants(sorted);
 }
 
-// ─────────────────────────────────────────
-//   SKELETON / ERROR / EMPTY STATES
-// ─────────────────────────────────────────
-
+// ── STATES ───────────────────────────────
 function showSkeleton() {
     document.getElementById('skeletonGrid').classList.remove('hidden');
     document.getElementById('restaurantGrid').classList.add('hidden');
     document.getElementById('emptyState').classList.add('hidden');
     document.getElementById('errorState').classList.add('hidden');
 }
-
-function hideSkeleton() {
-    document.getElementById('skeletonGrid').classList.add('hidden');
-}
-
+function hideSkeleton() { document.getElementById('skeletonGrid').classList.add('hidden'); }
 function showEmpty() {
     document.getElementById('emptyState').classList.remove('hidden');
     document.getElementById('restaurantCount').textContent = '0 restaurants available';
 }
-
 function showError(msg) {
     document.getElementById('errorState').classList.remove('hidden');
     document.getElementById('errorMsg').textContent = msg;
 }
 
-// ─────────────────────────────────────────
-//   HELPER
-// ─────────────────────────────────────────
-
-// Prevent XSS — escape user data before putting in HTML
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Card entrance animation
+// Fade in animation
 const style = document.createElement('style');
 style.textContent = `
     @keyframes fadeInUp {
