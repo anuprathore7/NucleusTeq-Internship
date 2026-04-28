@@ -1,40 +1,23 @@
 package com.anup.restaurant_backend.enums;
 
 /**
- * 📌 OrderStatus ENUM
+ * ============================================
+ *   OrderStatus Enum
+ * ============================================
  *
- * 🧠 Real-life meaning:
- * Defines different stages of an order lifecycle
+ *  ORDER LIFECYCLE (from SRS FR-11):
  *
- * Why ENUM?
- * → prevents invalid values
- * → makes code clean
- * → industry standard practice
+ * Customer places order → PLACED
+ * Restaurant sees it    → PENDING
+ * Food is on the way    → OUT_FOR_DELIVERY
+ * Customer received     → COMPLETED
+ * Someone cancelled     → CANCELLED
+ *
  */
 public enum OrderStatus {
-
-    /**
-     *  Order just placed
-     */
     PLACED,
-
-    /**
-     *  Restaurant is preparing food
-     */
-    PREPARING,
-
-    /**
-     *  Out for delivery
-     */
-    OUT_FOR_DELIVERY,
-
-    /**
-     *  Order completed
-     */
+    PENDING,
     DELIVERED,
-
-    /**
-     *  Order cancelled
-     */
+    COMPLETED,
     CANCELLED
 }

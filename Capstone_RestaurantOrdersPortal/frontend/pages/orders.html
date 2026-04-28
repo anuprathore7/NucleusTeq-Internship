@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Food Mania — My Orders</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="../css/main.css"/>
+    <style>
+        .order-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            transition: box-shadow .2s;
+        }
+        .order-card:hover { box-shadow: 0 8px 30px rgba(107,29,46,.10); }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 99px;
+            font-size: 12px; font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .status-PLACED    { background:#EFF4FF; color:#2563EB; border:1px solid #BFDBFE; }
+        .status-PENDING   { background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; }
+        .status-DELIVERED { background:#F0FDF4; color:#15803D; border:1px solid #BBF7D0; }
+        .status-COMPLETED { background:#EFF9F4; color:#1E6B45; border:1px solid #B2DEC8; }
+        .status-CANCELLED { background:#FDF0EF; color:#C0392B; border:1px solid #F5C6C3; }
+        .cancel-btn {
+            padding: 7px 18px; border-radius: 99px;
+            border: 1.5px solid #C0392B; background: white;
+            color: #C0392B; font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px; font-weight: 600;
+            cursor: pointer; transition: all .2s;
+        }
+        .cancel-btn:hover { background: #FDF0EF; }
+        #toast {
+            position: fixed; bottom: 28px; left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 13px 26px; border-radius: 99px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+            z-index: 9999; transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+            white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+            display: flex; align-items: center; gap: 10px; color: white;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.success { background: #1E6B45; }
+        #toast.error { background: #c0392b; }
+    </style>
+</head>
+<body class="bg-cream min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="sticky top-0 z-50 bg-white border-b border-gold/20 shadow-sm">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="restaurants.html" class="text-ash hover:text-burgundy transition text-sm font-dm font-medium">← Home</a>
+            <span class="text-gold/40">|</span>
+            <span class="text-2xl">🍽️</span>
+            <span class="font-playfair text-2xl font-bold text-burgundy">Food<span class="text-gold">Mania</span></span>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="cart.html" class="flex items-center gap-2 text-sm font-dm text-ash hover:text-burgundy transition">🛒 Cart</a>
+            <button onclick="logout()" class="text-sm text-ash hover:text-red-500 font-dm transition">🚪 Sign Out</button>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<div class="bg-gradient-to-br from-burgundy-dk via-burgundy to-burgundy-lt text-white py-10 px-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="font-playfair text-4xl font-bold mb-1">My Orders 📦</h1>
+        <p class="text-white/70 font-dm">Track all your past and current orders</p>
+    </div>
+</div>
+
+<!-- MAIN -->
+<main class="max-w-4xl mx-auto px-6 py-10 space-y-6">
+
+    <!-- Loading -->
+    <div id="ordersLoading" class="space-y-4">
+        <div class="animate-pulse bg-white rounded-2xl h-36 border border-gold/10"></div>
+        <div class="animate-pulse bg-white rounded-2xl h-36 border border-gold/10"></div>
+        <div class="animate-pulse bg-white rounded-2xl h-36 border border-gold/10"></div>
+    </div>
+
+    <!-- Empty -->
+    <div id="ordersEmpty" class="hidden text-center py-24 bg-white rounded-2xl border border-gold/10">
+        <div class="text-6xl mb-4">📦</div>
+        <h3 class="font-playfair text-2xl font-bold text-ink mb-2">No orders yet</h3>
+        <p class="text-ash font-dm mb-6">Place your first order from our restaurants</p>
+        <a href="restaurants.html" class="inline-block bg-burgundy text-white px-6 py-3 rounded-full font-dm font-semibold hover:bg-burgundy-dk transition">
+            Browse Restaurants →
+        </a>
+    </div>
+
+    <!-- Orders List -->
+    <div id="ordersList" class="hidden space-y-5"></div>
+
+</main>
+
+<footer class="bg-ink text-white/60 py-6 mt-16">
+    <div class="max-w-4xl mx-auto px-6 text-center text-sm font-dm">
+        © 2026 Food Mania. Made with ❤️ for food lovers.
+    </div>
+</footer>
+
+<div id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/orders.js"></script>
+</body>
+</html>

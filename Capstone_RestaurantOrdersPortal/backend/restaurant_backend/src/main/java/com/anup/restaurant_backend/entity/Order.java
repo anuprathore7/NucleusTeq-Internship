@@ -6,138 +6,79 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- *  Order Entity
+ * ============================================
+ *   Order Entity
+ * ============================================
  *
- *  Real-life meaning:
- * When user clicks "Place Order"
- * → Cart becomes Order
- * → Payment happens
- * → Order gets tracked
  */
 @Entity
 @Table(name = "orders")
 public class Order {
 
-    /**
-     *  Primary Key
-     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     *  Order belongs to ONE user
+     * Which customer placed this order
      */
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
     /**
-     *  Order belongs to ONE restaurant
+     * Which restaurant this order is for
      */
     @ManyToOne
     @JoinColumn(name = "restaurant_id")
     private Restaurant restaurant;
 
     /**
-     *  Total amount of order
+     * All items in this order (snapshot from cart)
+     */
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    private List<OrderItem> orderItems;
+
+    /**
+     * Total amount charged
      */
     private Double totalAmount;
 
     /**
-     *  Order status
-     * Example: PLACED, PREPARING, DELIVERED
+     * Current status of order
+     * PLACED → PENDING → DELIVERED → COMPLETED / CANCELLED
      */
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
     /**
-     *  Order time
+     * When order was placed
+     * Used for 30-second cancellation rule
      */
-    private LocalDateTime orderTime;
+    private LocalDateTime createdAt;
 
-    /**
-     *  ONE order has MANY order items
-     */
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> items;
+    public Order() {}
 
-    public Order() {
-    }
+    // ── GETTERS & SETTERS ──
 
-    // ================= GETTERS & SETTERS =================
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public UserEntity getUser() { return user; }
+    public void setUser(UserEntity user) { this.user = user; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Restaurant getRestaurant() { return restaurant; }
+    public void setRestaurant(Restaurant restaurant) { this.restaurant = restaurant; }
 
-    public UserEntity getUser() {
-        return user;
-    }
+    public List<OrderItem> getOrderItems() { return orderItems; }
+    public void setOrderItems(List<OrderItem> orderItems) { this.orderItems = orderItems; }
 
-    /**
-     *  Links order to user → user_id stored
-     */
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
+    public Double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
 
-    public Restaurant getRestaurant() {
-        return restaurant;
-    }
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
 
-    /**
-     *  Links order to restaurant → restaurant_id stored
-     */
-    public void setRestaurant(Restaurant restaurant) {
-        this.restaurant = restaurant;
-    }
-
-    public Double getTotalAmount() {
-        return totalAmount;
-    }
-
-    /**
-     *  Calculated from cart
-     */
-    public void setTotalAmount(Double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public OrderStatus getStatus() {
-        return status;
-    }
-
-    /**
-     *  Controls order lifecycle
-     */
-    public void setStatus(OrderStatus status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getOrderTime() {
-        return orderTime;
-    }
-
-    /**
-     *  Set when order is placed
-     */
-    public void setOrderTime(LocalDateTime orderTime) {
-        this.orderTime = orderTime;
-    }
-
-    public List<OrderItem> getItems() {
-        return items;
-    }
-
-    /**
-     *  Holds all items in order
-     */
-    public void setItems(List<OrderItem> items) {
-        this.items = items;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
