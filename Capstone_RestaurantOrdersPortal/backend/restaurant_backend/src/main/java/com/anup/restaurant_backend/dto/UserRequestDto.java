@@ -57,7 +57,7 @@ public class UserRequestDto {
         return role;
     }
 
-    public void UserRole(UserRole role) {
+    public void setRole(UserRole role) {
         this.role = role;
     }
 

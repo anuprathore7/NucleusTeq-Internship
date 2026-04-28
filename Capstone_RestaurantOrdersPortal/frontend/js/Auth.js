@@ -1,4 +1,3 @@
-
 /**
  * ============================================
  *   Food Mania — Auth Page JS
@@ -8,19 +7,31 @@
 const BASE_URL = 'http://localhost:8000';
 
 // ─────────────────────────────────────────
+//   HELPER: Extract message from backend response
+//   Your GlobalExceptionHandler always returns { "message": "..." }
+//   This reads it safely, with a fallback.
+// ─────────────────────────────────────────
+
+async function extractErrorMessage(response, fallback) {
+    try {
+        const data = await response.json();
+        return data.message || fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+// ─────────────────────────────────────────
 //   PAGE INIT
 // ─────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-    // If already logged in and token is valid → redirect
     const token = localStorage.getItem('fm_token');
     if (token && isTokenValid(token)) {
         const role = localStorage.getItem('fm_role');
         redirectByRole(role);
         return;
     }
-
-    // Set up tab indicator initial position
     updateTabIndicator('login');
 });
 
@@ -54,11 +65,7 @@ function switchTab(tab) {
 function updateTabIndicator(tab) {
     const indicator = document.getElementById('tabIndicator');
     if (!indicator) return;
-    if (tab === 'register') {
-        indicator.classList.add('right');
-    } else {
-        indicator.classList.remove('right');
-    }
+    indicator.classList.toggle('right', tab === 'register');
 }
 
 // ─────────────────────────────────────────
@@ -85,14 +92,17 @@ async function handleLogin() {
     const email    = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
 
-    // Basic validation
-    if (!email || !password) {
-        showAlert('error', '⚠️', 'Please enter both email and password.');
+    // ── Client-side checks (matches your ValidationUtil) ──
+    if (!email) {
+        showAlert('error', '⚠️', 'Email is required.');
         return;
     }
-
     if (!isValidEmail(email)) {
         showAlert('error', '⚠️', 'Please enter a valid email address.');
+        return;
+    }
+    if (!password) {
+        showAlert('error', '⚠️', 'Password is required.');
         return;
     }
 
@@ -100,11 +110,6 @@ async function handleLogin() {
     clearAlert();
 
     try {
-        /**
-         * POST /api/auth/login
-         * Body: { email, password }
-         * Response: { token }
-         */
         const response = await fetch(`${BASE_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -112,16 +117,18 @@ async function handleLogin() {
         });
 
         if (!response.ok) {
-            // 401 → wrong credentials, 500 → server error
-            if (response.status === 401 || response.status === 403) {
-                showAlert('error', '❌', 'Invalid email or password. Please try again.');
-            } else {
-                showAlert('error', '❌', `Server error (${response.status}). Please try again.`);
-            }
+            // ── Read { "message": "..." } from your GlobalExceptionHandler ──
+            const message = await extractErrorMessage(
+                response,
+                response.status >= 500
+                    ? 'Something went wrong on our end. Please try again.'
+                    : 'Invalid email or password. Please try again.'
+            );
+            showAlert('error', '❌', message);
             return;
         }
 
-        const data = await response.json();
+        const data  = await response.json();
         const token = data.token;
 
         if (!token) {
@@ -129,30 +136,21 @@ async function handleLogin() {
             return;
         }
 
-        // Decode JWT to extract role and email
         const payload = decodeJwt(token);
         if (!payload) {
             showAlert('error', '❌', 'Invalid token received. Please try again.');
             return;
         }
 
-        // Save to localStorage
-        // JWT payload has: sub (email), role, exp
-        localStorage.setItem('fm_token', token);
-        localStorage.setItem('fm_email', payload.sub || email);
-        localStorage.setItem('fm_role',  payload.role || '');
-
-        // If payload has userId, save it too
+        localStorage.setItem('fm_token',  token);
+        localStorage.setItem('fm_email',  payload.sub || email);
+        localStorage.setItem('fm_role',   payload.role || '');
         if (payload.userId) {
             localStorage.setItem('fm_user_id', payload.userId);
         }
 
         showAlert('success', '✅', 'Login successful! Redirecting...');
-
-        // Redirect after short delay
-        setTimeout(() => {
-            redirectByRole(payload.role);
-        }, 800);
+        setTimeout(() => redirectByRole(payload.role), 800);
 
     } catch (err) {
         console.error('Login error:', err);
@@ -175,24 +173,37 @@ async function handleRegister() {
     const roleInput = document.querySelector('input[name="role"]:checked');
     const role      = roleInput ? roleInput.value : 'USER';
 
-    // Validation
-    if (!firstName || !lastName || !email || !phone || !password) {
-        showAlert('error', '⚠️', 'Please fill in all fields.');
+    // ── Client-side checks (mirrors your ValidationUtil exactly) ──
+    if (!firstName) {
+        showAlert('error', '⚠️', 'First name is required.');
         return;
     }
-
+    if (!lastName) {
+        showAlert('error', '⚠️', 'Last name is required.');
+        return;
+    }
+    if (!email) {
+        showAlert('error', '⚠️', 'Email is required.');
+        return;
+    }
     if (!isValidEmail(email)) {
         showAlert('error', '⚠️', 'Please enter a valid email address.');
         return;
     }
-
-    if (password.length < 6) {
-        showAlert('error', '⚠️', 'Password must be at least 6 characters.');
+    if (!phone) {
+        showAlert('error', '⚠️', 'Phone number is required.');
         return;
     }
-
     if (!/^\d{10}$/.test(phone)) {
-        showAlert('error', '⚠️', 'Please enter a valid 10-digit phone number.');
+        showAlert('error', '⚠️', 'Phone number must be 10 digits.');
+        return;
+    }
+    if (!password) {
+        showAlert('error', '⚠️', 'Password is required.');
+        return;
+    }
+    if (password.length < 6) {
+        showAlert('error', '⚠️', 'Password must be at least 6 characters.');
         return;
     }
 
@@ -200,11 +211,6 @@ async function handleRegister() {
     clearAlert();
 
     try {
-        /**
-         * POST /api/auth/register
-         * Body: { firstName, lastName, email, password, phone, role }
-         * Response: "User registered successfully" (string)
-         */
         const response = await fetch(`${BASE_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -212,26 +218,27 @@ async function handleRegister() {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            if (response.status === 409 || errorText.toLowerCase().includes('exist')) {
-                showAlert('error', '❌', 'An account with this email already exists.');
-            } else {
-                showAlert('error', '❌', errorText || `Registration failed (${response.status}).`);
-            }
+            // ── Read { "message": "..." } from your GlobalExceptionHandler ──
+            const message = await extractErrorMessage(
+                response,
+                response.status >= 500
+                    ? 'Something went wrong on our end. Please try again.'
+                    : 'Registration failed. Please check your details.'
+            );
+            showAlert('error', '❌', message);
             return;
         }
 
-        // Success — backend returns a string message
+        // Success — backend returns string "User registered successfully"
+        // (not JSON, so we don't call response.json() here)
         showAlert('success', '✅', 'Account created! You can now sign in.');
 
-        // Clear fields
         document.getElementById('regFirstName').value = '';
         document.getElementById('regLastName').value  = '';
         document.getElementById('regEmail').value     = '';
         document.getElementById('regPhone').value     = '';
         document.getElementById('regPassword').value  = '';
 
-        // Switch to login tab after 1.5s
         setTimeout(() => {
             switchTab('login');
             document.getElementById('loginEmail').value = email;
@@ -253,7 +260,6 @@ function redirectByRole(role) {
     if (role === 'RESTAURANT_OWNER') {
         window.location.href = 'owner-dashboard.html';
     } else {
-        // USER or anything else
         window.location.href = 'restaurants.html';
     }
 }
@@ -263,18 +269,16 @@ function redirectByRole(role) {
 // ─────────────────────────────────────────
 
 function showAlert(type, icon, message) {
-    const box  = document.getElementById('alertBox');
-    const ico  = document.getElementById('alertIcon');
-    const msg  = document.getElementById('alertMsg');
-
-    box.className = `alert ${type}`;
+    const box = document.getElementById('alertBox');
+    const ico = document.getElementById('alertIcon');
+    const msg = document.getElementById('alertMsg');
+    box.className   = `alert ${type}`;
     ico.textContent = icon;
     msg.textContent = message;
 }
 
 function clearAlert() {
-    const box = document.getElementById('alertBox');
-    box.className = 'alert hidden';
+    document.getElementById('alertBox').className = 'alert hidden';
 }
 
 // ─────────────────────────────────────────
@@ -287,17 +291,10 @@ function setLoading(btnId, loading) {
     const icon   = btn.querySelector('.btn-icon');
     const loader = btn.querySelector('.btn-loader');
 
-    if (loading) {
-        btn.classList.add('loading');
-        text.style.opacity = '0.6';
-        icon.classList.add('hidden');
-        loader.classList.remove('hidden');
-    } else {
-        btn.classList.remove('loading');
-        text.style.opacity = '1';
-        icon.classList.remove('hidden');
-        loader.classList.add('hidden');
-    }
+    btn.classList.toggle('loading', loading);
+    text.style.opacity = loading ? '0.6' : '1';
+    icon.classList.toggle('hidden', loading);
+    loader.classList.toggle('hidden', !loading);
 }
 
 // ─────────────────────────────────────────
@@ -307,7 +304,7 @@ function setLoading(btnId, loading) {
 function decodeJwt(token) {
     try {
         return JSON.parse(atob(token.split('.')[1]));
-    } catch (e) {
+    } catch {
         return null;
     }
 }

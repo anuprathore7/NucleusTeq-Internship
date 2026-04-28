@@ -6,8 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,62 +16,103 @@ import java.util.Map;
  *   GlobalExceptionHandler
  * ============================================
  *
+ *  WHAT THIS DOES:
+ * Catches ALL exceptions thrown anywhere in the app
+ * and returns clean, user-friendly JSON messages.
+ *
+ *  WITHOUT THIS:
+ * Frontend gets: ugly stack traces, Spring error pages,
+ * "Internal Server Error" with no useful message
+ *
+ *  WITH THIS:
+ * Frontend gets:
+ * { "message": "Email is required" }
+ * { "message": "Insufficient wallet balance" }
+ * { "message": "Order not found" }
+ *
+ *  ONLY MESSAGE IS RETURNED — no status code, no timestamp
+ * This is clean and simple for the UI to show directly.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /**
-     * 404 - Resource Not Found
-     * Thrown when cart, order, restaurant, user not found
-     */
+    // ── 404 Not Found ──────────────────────────────────────────
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
-        log.error("Resource not found: {}", ex.getMessage());
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+        log.error("Not found: {}", ex.getMessage());
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    /**
-     * 400 - Bad Request
-     * Thrown for: insufficient wallet, cancellation expired,
-     * empty cart, different restaurant, invalid status etc.
-     */
+    // ── 400 Validation / Business Logic ───────────────────────
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleValidation(ValidationException ex) {
+        log.warn("Validation: {}", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // ── 403 Forbidden ──────────────────────────────────────────
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(UnauthorizedException ex) {
+        log.warn("Unauthorized: {}", ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    // ── 400 Insufficient Wallet ────────────────────────────────
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<Map<String, Object>> handleWallet(InsufficientBalanceException ex) {
+        log.warn("Wallet: {}", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // ── 400 Order Cancellation Time Expired ───────────────────
+    @ExceptionHandler(OrderCancellationException.class)
+    public ResponseEntity<Map<String, Object>> handleCancellation(OrderCancellationException ex) {
+        log.warn("Cancellation: {}", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // ── 400 Wrong URL param type (e.g. /api/cart/add/abc) ─────
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Invalid value for parameter: " + ex.getName());
+    }
+
+    // ── Catch-all RuntimeException ─────────────────────────────
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
         log.error("Runtime error: {}", ex.getMessage());
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Something went wrong";
 
-        // Determine status code based on message content
-        String msg = ex.getMessage() != null ? ex.getMessage() : "An error occurred";
-
-        if (msg.contains("not authorized") || msg.contains("Unauthorized")) {
-            return buildResponse(HttpStatus.FORBIDDEN, msg);
+        // Smart status detection from message
+        if (msg.toLowerCase().contains("not authorized") ||
+                msg.toLowerCase().contains("unauthorized") ||
+                msg.toLowerCase().contains("not allowed")) {
+            return build(HttpStatus.FORBIDDEN, msg);
         }
-        if (msg.contains("not found") || msg.contains("Not Found")) {
-            return buildResponse(HttpStatus.NOT_FOUND, msg);
+        if (msg.toLowerCase().contains("not found")) {
+            return build(HttpStatus.NOT_FOUND, msg);
         }
-
-        return buildResponse(HttpStatus.BAD_REQUEST, msg);
+        if (msg.toLowerCase().contains("already exists") ||
+                msg.toLowerCase().contains("already registered")) {
+            return build(HttpStatus.CONFLICT, msg);
+        }
+        return build(HttpStatus.BAD_REQUEST, msg);
     }
 
-    /**
-     * 500 - Any other unexpected error
-     */
+    // ── 500 Unexpected errors ──────────────────────────────────
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Something went wrong. Please try again.");
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Something went wrong on our end. Please try again.");
     }
 
-    /**
-     * Helper to build consistent error response
-     */
-    private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
+    // ── Helper: builds { "message": "..." } only ──────────────
+    private ResponseEntity<Map<String, Object>> build(HttpStatus status, String message) {
         Map<String, Object> body = new HashMap<>();
-        body.put("status", status.value());
-        body.put("message", message);
-        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("message", message); // ONLY message — clean for UI
         return new ResponseEntity<>(body, status);
     }
 }

@@ -3,72 +3,84 @@ package com.anup.restaurant_backend.service;
 import com.anup.restaurant_backend.dto.LoginRequest;
 import com.anup.restaurant_backend.dto.UserRequestDto;
 import com.anup.restaurant_backend.entity.UserEntity;
+import com.anup.restaurant_backend.exception.ValidationException;
+import com.anup.restaurant_backend.exception.ValidationUtil;
 import com.anup.restaurant_backend.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Service
-// This class contains actual implementation of business logic
 public class UserServiceImpl implements UserService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    // this is database repository and are making Object here .
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder){
-
+    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
-
     @Override
     public String registerUser(UserRequestDto dto) {
 
-        //  Step 1: Check if user already exists
-        Optional<UserEntity> existingUser = userRepository.findByEmail(dto.getEmail());
+        // ── VALIDATION ──────────────────────────────────────
+        // These throw ValidationException → GlobalHandler → { "message": "..." }
 
-        if (existingUser.isPresent()) {
-            return "Email already registered";
+        ValidationUtil.requireNotBlank(dto.getFirstName(), "First name");
+        ValidationUtil.requireNotBlank(dto.getLastName(),  "Last name");
+        ValidationUtil.requireNotBlank(dto.getEmail(),     "Email");
+        ValidationUtil.requireValidEmail(dto.getEmail());
+        ValidationUtil.requireNotBlank(dto.getPhone(),     "Phone number");
+        ValidationUtil.requireValidPhone(dto.getPhone());
+        ValidationUtil.requireNotBlank(dto.getPassword(),  "Password");
+        ValidationUtil.requireMinLength(dto.getPassword(), 6, "Password");
+        ValidationUtil.requireNotNull(dto.getRole(), "Role");
+
+        // ── DUPLICATE EMAIL CHECK ────────────────────────────
+        Optional<UserEntity> existing = userRepository.findByEmail(dto.getEmail().trim());
+        if (existing.isPresent()) {
+            throw new ValidationException("This email is already registered. Please sign in.");
         }
 
-        //  Step 2: Convert DTO → Entity
+        // ── CREATE USER ──────────────────────────────────────
         UserEntity user = new UserEntity();
-
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
-        user.setEmail(dto.getEmail());
+        user.setFirstName(dto.getFirstName().trim());
+        user.setLastName(dto.getLastName().trim());
+        user.setEmail(dto.getEmail().trim().toLowerCase());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setPhone(dto.getPhone());
+        user.setPhone(dto.getPhone().trim());
         user.setRole(dto.getRole());
+        user.setWalletBalance(1000.0); // free wallet credit on registration
 
-        //  Step 3: Apply business rule
-        user.setWalletBalance(1000.0);
-
-        //  Step 4: Save to database
         userRepository.save(user);
 
+        log.info("New user registered: {}", user.getEmail());
         return "User registered successfully";
     }
 
     @Override
-    public String loginUser(LoginRequest dto){
-        // basically we are checking the dto or user is coming that is valid or not if not then it will handle null
-        Optional<UserEntity> existingUser = userRepository.findByEmail(dto.getEmail());
-        // It ensures checking of user weather it is empty or not
-        if (existingUser.isEmpty()){
-            return "User not Found";
-        }
-        // here It finds the User from the database with the help of existing user which is coming from dto.
-        UserEntity user = existingUser.get();
-        // here Password checks weather it is correct or not if incorrect then show this or return login successfully.
-        if (!passwordEncoder.matches(dto.getPassword() , user.getPassword())){
-            return "Invalid email or password";
+    public String loginUser(LoginRequest dto) {
+
+        // ── VALIDATION ──────────────────────────────────────
+        ValidationUtil.requireNotBlank(dto.getEmail(),    "Email");
+        ValidationUtil.requireNotBlank(dto.getPassword(), "Password");
+
+        // ── FIND USER ────────────────────────────────────────
+        UserEntity user = userRepository.findByEmail(dto.getEmail().trim())
+                .orElseThrow(() -> new ValidationException("No account found with this email"));
+
+        // ── CHECK PASSWORD ───────────────────────────────────
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            throw new ValidationException("Incorrect password. Please try again.");
         }
 
-        return "Login Successfully";
+        log.info("User logged in: {}", user.getEmail());
+        return "Login successful";
     }
 }
