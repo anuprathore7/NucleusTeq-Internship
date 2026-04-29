@@ -6,15 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 /**
- *  AddressRepository
- *
- *  What this file does:
- * Handles DB operations for Address
+ * Repository for performing database operations on Address entities.
  */
 public interface AddressRepository extends JpaRepository<Address, Long> {
 
     /**
-     *  Get all addresses of a user
+     * Fetches all addresses belonging to a specific user.
      */
     List<Address> findByUserId(Long userId);
 }

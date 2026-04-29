@@ -3,115 +3,60 @@ package com.anup.restaurant_backend.entity;
 import jakarta.persistence.*;
 
 /**
- * Address Entity
- * This class represents the "addresses" table in database.
- * It stores delivery locations of users.
+ * Entity representing a user's saved delivery address stored in the "addresses" table.
  */
 @Entity
 @Table(name = "addresses")
 public class Address {
 
-    /**
-     * Primary Key
-     * This is unique ID for every address
-     */
+    /** Primary key, auto-incremented by the database. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     *  Street details (House no, street name, area)
-     */
+    /** Street details such as house number, street name, and area. */
     private String street;
 
-    /**
-     *  City name
-     */
+    /** City name for this address. */
     private String city;
 
-    /**
-     *  State name
-     */
+    /** State name for this address. */
     private String state;
 
-    /**
-     *  Pincode for delivery
-     */
+    /** Postal pincode used for delivery routing. */
     private String pincode;
 
     /**
-     *  Relationship with User
-     *
-     * MANY addresses → belong to ONE user
-     *
-     *  This will create a foreign key column "user_id" in addresses table
+     * The user who owns this address.
+     * Many addresses can belong to one user.
+     * Creates a foreign key column "user_id" in the addresses table.
      */
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
-    /**
-     *  Default Constructor (Required by JPA)
-     *
-     * JPA (Hibernate) uses this to create object internally
-     */
-    public Address() {
-    }
+    /** Default constructor required by JPA. */
+    public Address() {}
 
-    // ================= GETTERS & SETTERS =================
+    public Long getId()              { return id; }
+    public void setId(Long id)       { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public String getStreet()        { return street; }
+    public void setStreet(String s)  { this.street = s; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getCity()          { return city; }
+    public void setCity(String c)    { this.city = c; }
 
-    public String getStreet() {
-        return street;
-    }
+    public String getState()         { return state; }
+    public void setState(String s)   { this.state = s; }
 
-    public void setStreet(String street) {
-        this.street = street;
-    }
+    public String getPincode()       { return pincode; }
+    public void setPincode(String p) { this.pincode = p; }
 
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public String getPincode() {
-        return pincode;
-    }
-
-    public void setPincode(String pincode) {
-        this.pincode = pincode;
-    }
-
-    public UserEntity getUser() {
-        return user;
-    }
+    public UserEntity getUser()           { return user; }
 
     /**
-     * 🧠 IMPORTANT FLOW UNDERSTANDING
-     *
-     * When we set user here:
-     * → This address gets linked to that user
-     * → user_id column will be filled in DB
+     * Links this address to the given user, setting the user_id foreign key in the database.
      */
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
+    public void setUser(UserEntity user)  { this.user = user; }
 }
