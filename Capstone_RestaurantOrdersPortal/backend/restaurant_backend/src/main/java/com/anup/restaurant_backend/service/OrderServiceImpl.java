@@ -11,23 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * ============================================
- *   OrderServiceImpl
- * ============================================
- * All steps are @Transactional — if anything fails,
- * everything rolls back. No partial state!
- *
- *  30 SECOND CANCELLATION RULE (SRS FR-12):
- * createdAt is stored when order is placed.
- * On cancel → check: now - createdAt <= 30 seconds
- * If more than 30 seconds → reject cancellation.
+ * Service implementation for handling order operations such as placing,
+ * fetching, cancelling, and updating order status.
  */
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -52,33 +43,28 @@ public class OrderServiceImpl implements OrderService {
         this.jwtService = jwtService;
     }
 
-    // =====================================================
-    //  PLACE ORDER
-    // =====================================================
-
+    /**
+     * Places an order for the authenticated user using items from their cart.
+     * Deducts wallet balance and clears the cart after successful order creation.
+     */
     @Override
     @Transactional
     public OrderResponseDto placeOrder(String token) {
 
-        // Step 1: Get customer from JWT
         UserEntity customer = getUserFromToken(token);
 
-        // Step 2: Get their cart
         Cart cart = cartRepository.findByUserId(customer.getId())
                 .orElseThrow(() -> new RuntimeException("Your cart is empty. Add items before placing order."));
 
-        // Step 3: Check cart has items
         List<CartItem> cartItems = cart.getItems();
         if (cartItems == null || cartItems.isEmpty()) {
             throw new RuntimeException("Your cart is empty. Add items before placing order.");
         }
 
-        // Step 4: Calculate total
         Double total = cartItems.stream()
                 .mapToDouble(item -> item.getPrice() * item.getQuantity())
                 .sum();
 
-        // Step 5: Check wallet balance
         if (customer.getWalletBalance() < total) {
             throw new RuntimeException(
                     "Insufficient wallet balance. Required: ₹" + total +
@@ -86,7 +72,6 @@ public class OrderServiceImpl implements OrderService {
             );
         }
 
-        // Step 6: Create order
         Order order = new Order();
         order.setUser(customer);
         order.setRestaurant(cart.getRestaurant());
@@ -96,13 +81,12 @@ public class OrderServiceImpl implements OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // Step 7: Copy cart items → OrderItems (SNAPSHOT)
         List<OrderItem> orderItems = cartItems.stream().map(cartItem -> {
             OrderItem oi = new OrderItem();
             oi.setOrder(savedOrder);
             oi.setMenuItem(cartItem.getMenuItem());
-            oi.setItemName(cartItem.getMenuItem().getName()); // snapshot name
-            oi.setPrice(cartItem.getPrice());                  // snapshot price
+            oi.setItemName(cartItem.getMenuItem().getName());
+            oi.setPrice(cartItem.getPrice());
             oi.setQuantity(cartItem.getQuantity());
             return oi;
         }).collect(Collectors.toList());
@@ -110,41 +94,30 @@ public class OrderServiceImpl implements OrderService {
         savedOrder.setOrderItems(orderItems);
         orderRepository.save(savedOrder);
 
-        // Step 8: Deduct wallet balance
         customer.setWalletBalance(customer.getWalletBalance() - total);
         userRepository.save(customer);
 
-        // Step 9: Clear the cart (delete it — cascade removes cart items)
         cartRepository.deleteById(cart.getId());
 
-        log.info("Order placed successfully. OrderId: {}, UserId: {}, Total: ₹{}",
-                savedOrder.getId(), customer.getId(), total);
+        log.info("Order placed. OrderId={}, UserId={}, Total=₹{}", savedOrder.getId(), customer.getId(), total);
 
-        // Step 10: Return response
         return mapToResponse(savedOrder);
     }
 
-    // =====================================================
-    //  GET MY ORDERS (Customer order history)
-    // =====================================================
-
+    /**
+     * Retrieves all orders of the authenticated user sorted by latest first.
+     */
     @Override
     public List<OrderResponseDto> getMyOrders(String token) {
         UserEntity customer = getUserFromToken(token);
-
         List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(customer.getId());
-
-        log.info("Fetched {} orders for userId: {}", orders.size(), customer.getId());
-
-        return orders.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    // =====================================================
-    //  CANCEL ORDER (30 second rule)
-    // =====================================================
-
+    /**
+     * Cancels an order within 30 seconds if it is still in PLACED status.
+     * Refunds the amount to user's wallet.
+     */
     @Override
     @Transactional
     public OrderResponseDto cancelOrder(Long orderId, String token) {
@@ -154,12 +127,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        // Check this order belongs to this customer
         if (!order.getUser().getId().equals(customer.getId())) {
             throw new RuntimeException("You are not authorized to cancel this order.");
         }
 
-        // Check order is in PLACED status (can only cancel PLACED orders)
         if (order.getStatus() != OrderStatus.PLACED) {
             throw new RuntimeException(
                     "Cannot cancel order. Current status: " + order.getStatus() +
@@ -167,56 +138,44 @@ public class OrderServiceImpl implements OrderService {
             );
         }
 
-        // ── 30 SECOND RULE (SRS FR-12) ──
         long secondsElapsed = ChronoUnit.SECONDS.between(order.getCreatedAt(), LocalDateTime.now());
-
         if (secondsElapsed > 30) {
             throw new RuntimeException(
                     "Cancellation window has expired. Orders can only be cancelled within 30 seconds of placing."
             );
         }
 
-        // Cancel the order
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
 
-        // Refund wallet balance
         customer.setWalletBalance(customer.getWalletBalance() + order.getTotalAmount());
         userRepository.save(customer);
 
-        log.info("Order {} cancelled by userId: {}. ₹{} refunded to wallet.",
-                orderId, customer.getId(), order.getTotalAmount());
+        log.info("Order {} cancelled. ₹{} refunded to userId={}", orderId, order.getTotalAmount(), customer.getId());
 
         return mapToResponse(order);
     }
 
-    // =====================================================
-    //  GET RESTAURANT ORDERS (Owner view)
-    // =====================================================
-
+    /**
+     * Retrieves all orders for a restaurant owned by the authenticated user.
+     */
     @Override
     public List<OrderResponseDto> getRestaurantOrders(Long restaurantId, String token) {
 
         UserEntity owner = getUserFromToken(token);
 
-        // Verify owner owns this restaurant
         restaurantRepository.findById(restaurantId)
                 .filter(r -> r.getOwner().getId().equals(owner.getId()))
                 .orElseThrow(() -> new RuntimeException("Restaurant not found or you don't own it."));
 
         List<Order> orders = orderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId);
 
-        log.info("Fetched {} orders for restaurantId: {}", orders.size(), restaurantId);
-
-        return orders.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    // =====================================================
-    //  UPDATE ORDER STATUS (Owner)
-    // =====================================================
-
+    /**
+     * Updates the status of an order based on valid lifecycle transitions.
+     */
     @Override
     @Transactional
     public OrderResponseDto updateOrderStatus(Long orderId, String status, String token) {
@@ -226,37 +185,62 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
-        // Verify owner owns the restaurant for this order
         if (!order.getRestaurant().getOwner().getId().equals(owner.getId())) {
             throw new RuntimeException("You are not authorized to update this order.");
         }
 
-        // Parse and set new status
+        OrderStatus newStatus;
         try {
-            OrderStatus newStatus = OrderStatus.valueOf(status.toUpperCase());
-            order.setStatus(newStatus);
+            newStatus = OrderStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid status: " + status +
-                    ". Valid values: PENDING, DELIVERED, COMPLETED, CANCELLED");
+                    ". Valid values: PLACED, PENDING, ACCEPTED, OUT_FOR_DELIVERY, COMPLETED, CANCELLED");
         }
 
+        validateStatusTransition(order.getStatus(), newStatus);
+
+        order.setStatus(newStatus);
         orderRepository.save(order);
 
-        log.info("Order {} status updated to {} by owner: {}", orderId, status, owner.getEmail());
+        log.info("Order {} status: {} → {} by owner={}", orderId, order.getStatus(), newStatus, owner.getEmail());
 
         return mapToResponse(order);
     }
 
-    // =====================================================
-    //  PRIVATE HELPERS
-    // =====================================================
+    /**
+     * Validates allowed order status transitions.
+     */
+    private void validateStatusTransition(OrderStatus current, OrderStatus next) {
+        if (next == OrderStatus.CANCELLED) return;
 
+        boolean valid = switch (current) {
+            case PLACED           -> next == OrderStatus.PENDING;
+            case PENDING          -> next == OrderStatus.ACCEPTED;
+            case ACCEPTED         -> next == OrderStatus.OUT_FOR_DELIVERY;
+            case OUT_FOR_DELIVERY -> next == OrderStatus.COMPLETED;
+            default               -> false;
+        };
+
+        if (!valid) {
+            throw new RuntimeException(
+                    "Invalid status transition: " + current + " → " + next +
+                            ". Expected flow: PLACED → PENDING → ACCEPTED → OUT_FOR_DELIVERY → COMPLETED"
+            );
+        }
+    }
+
+    /**
+     * Extracts user details from JWT token.
+     */
     private UserEntity getUserFromToken(String token) {
         String email = jwtService.extractEmail(token.substring(7));
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    /**
+     * Converts Order entity into response DTO.
+     */
     private OrderResponseDto mapToResponse(Order order) {
         List<OrderItemResponseDto> itemDtos = order.getOrderItems() == null
                 ? List.of()

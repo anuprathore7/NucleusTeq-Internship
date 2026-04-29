@@ -1,23 +1,28 @@
+
+
+
 package com.anup.restaurant_backend.enums;
 
 /**
  * ============================================
- *   OrderStatus Enum
+ *   OrderStatus Enum  —  UPDATED
  * ============================================
  *
- *  ORDER LIFECYCLE (from SRS FR-11):
  *
- * Customer places order → PLACED
- * Restaurant sees it    → PENDING
- * Food is on the way    → OUT_FOR_DELIVERY
- * Customer received     → COMPLETED
- * Someone cancelled     → CANCELLED
+ *
+ *  Customer places order  →  PLACED
+ *  Owner sees it          →  PENDING       (owner sets this)
+ *  Owner accepts          →  ACCEPTED      (owner sets this)
+ *  Food is on the way     →  OUT_FOR_DELIVERY (owner sets this)
+ *  Customer received      →  COMPLETED     (owner sets this)
+ *  Someone cancelled      →  CANCELLED
  *
  */
 public enum OrderStatus {
     PLACED,
     PENDING,
-    DELIVERED,
+    ACCEPTED,
+    OUT_FOR_DELIVERY,
     COMPLETED,
     CANCELLED
 }
