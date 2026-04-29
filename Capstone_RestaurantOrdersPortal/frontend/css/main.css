@@ -1,0 +1,332 @@
+/*!* ============================================*/
+/*   Food Mania — Global Styles*/
+/*   Used across ALL pages*/
+/*   Tailwind CDN handles utilities,*/
+/*   this file handles custom tokens + fonts*/
+/*============================================ *!*/
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── CSS VARIABLES ── */
+:root {
+    --burgundy:     #6B1D2E;
+    --burgundy-dk:  #4A1020;
+    --burgundy-lt:  #8B2D40;
+    --gold:         #C9A84C;
+    --gold-lt:      #E8C97A;
+    --gold-pale:    #F7EDD0;
+    --cream:        #FDF8F0;
+    --cream-dk:     #F0E8D8;
+    --ink:          #1C0F0F;
+    --ink-lt:       #5C3D3D;
+    --ash:          #8A7060;
+    --white:        #FFFFFF;
+    --border:       #E8D5B8;
+    --green:        #1E6B45;
+    --red:          #C0392B;
+    --red-bg:       #FDF0EF;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── BASE ── */
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+}
+
+/* ── FONT UTILITIES ── */
+.font-playfair { font-family: 'Playfair Display', serif !important; }
+.font-dm       { font-family: 'DM Sans', sans-serif !important; }
+
+/* ── COLOR UTILITIES ── */
+.bg-cream       { background-color: var(--cream) !important; }
+.bg-cream-dk    { background-color: var(--cream-dk) !important; }
+.bg-burgundy    { background-color: var(--burgundy) !important; }
+.bg-burgundy-dk { background-color: var(--burgundy-dk) !important; }
+.bg-burgundy-lt { background-color: var(--burgundy-lt) !important; }
+.bg-gold        { background-color: var(--gold) !important; }
+.bg-gold-pale   { background-color: var(--gold-pale) !important; }
+.bg-ink         { background-color: var(--ink) !important; }
+
+.text-burgundy  { color: var(--burgundy) !important; }
+.text-gold      { color: var(--gold) !important; }
+.text-ink       { color: var(--ink) !important; }
+.text-ink-lt    { color: var(--ink-lt) !important; }
+.text-ash       { color: var(--ash) !important; }
+.text-white     { color: #ffffff !important; }
+
+.border-gold    { border-color: var(--gold) !important; }
+.border-burgundy{ border-color: var(--burgundy) !important; }
+
+/* ── HOVER UTILITIES ── */
+.hover\:bg-burgundy-dk:hover { background-color: var(--burgundy-dk) !important; }
+.hover\:text-burgundy:hover  { color: var(--burgundy) !important; }
+.hover\:bg-cream:hover       { background-color: var(--cream) !important; }
+
+/* ── GRADIENT HERO (FIXES INVISIBLE TEXT) ──
+   Tailwind CDN can't resolve custom color names
+   in gradients. We define all hero gradients here.
+*/
+.hero-gradient {
+    background: linear-gradient(135deg,
+    var(--burgundy-dk) 0%,
+    var(--burgundy) 55%,
+    var(--burgundy-lt) 100%) !important;
+}
+
+/* Override Tailwind gradient classes that don't resolve */
+.from-burgundy,
+.from-burgundy-dk,
+.via-burgundy,
+.via-burgundy-lt,
+.to-burgundy-dk,
+.to-burgundy-lt,
+.bg-gradient-to-br {
+    background: linear-gradient(135deg,
+    var(--burgundy-dk) 0%,
+    var(--burgundy) 55%,
+    var(--burgundy-lt) 100%) !important;
+}
+
+/* Ensure text is WHITE in all hero sections */
+section.hero-gradient *,
+.hero-gradient *,
+.fm-hero *,
+section[class*="from-burgundy"] *,
+section[class*="via-burgundy"] * {
+    /* don't force all — just the direct children */
+}
+
+/* ── NAVBAR ── */
+.fm-navbar {
+    position: sticky; top: 0; z-index: 100;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 12px rgba(107,29,46,.07);
+    height: 72px;
+    display: flex; align-items: center;
+}
+.fm-navbar-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 24px; width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.fm-nav-left {
+    display: flex; align-items: center; gap: 14px;
+    /* FIXED: nav-left takes only what it needs */
+    flex-shrink: 0;
+}
+.fm-back-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--cream);
+    font-size: 13px; font-weight: 500; color: var(--ash);
+    text-decoration: none; transition: all .18s;
+    white-space: nowrap; flex-shrink: 0;
+    /* FIXED: back button won't expand and toggle whole navbar */
+    width: auto !important;
+}
+.fm-back-btn:hover { border-color: var(--burgundy); color: var(--burgundy); }
+.fm-nav-divider { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+.fm-brand {
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none; flex-shrink: 0;
+}
+.fm-brand-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 700; color: var(--burgundy);
+}
+.fm-brand-text em { color: var(--gold); font-style: normal; }
+
+/* ── HERO SECTIONS (all pages) ── */
+.fm-hero {
+    background: linear-gradient(135deg, var(--burgundy-dk) 0%, var(--burgundy) 55%, var(--burgundy-lt) 100%);
+    padding: 44px 24px;
+    position: relative; overflow: hidden;
+}
+.fm-hero::before {
+    content: ''; position: absolute;
+    top: -80px; right: -80px; width: 300px; height: 300px;
+    border-radius: 50%; background: rgba(255,255,255,.06);
+}
+.fm-hero::after {
+    content: ''; position: absolute;
+    bottom: -60px; left: -40px; width: 200px; height: 200px;
+    border-radius: 50%; background: rgba(201,168,76,.08);
+}
+.fm-hero-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+.fm-hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px; font-weight: 700;
+    color: #ffffff !important;  /* FORCE white — fixes invisible text */
+    margin-bottom: 8px;
+}
+.fm-hero p {
+    font-size: 15px;
+    color: rgba(255,255,255,.75) !important; /* FORCE visible */
+}
+
+/* ── RESTAURANT CARD ── */
+.restaurant-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform .25s ease, box-shadow .25s ease;
+    cursor: pointer;
+}
+.restaurant-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 48px rgba(107,29,46,.14);
+}
+.card-img {
+    height: 180px;
+    background: linear-gradient(135deg, var(--gold-pale), var(--cream-dk));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; position: relative; overflow: hidden;
+}
+.card-img img {
+    width: 100%; height: 100%; object-fit: cover;
+}
+.card-body { padding: 20px 22px 22px; }
+.card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 700; color: var(--ink);
+    margin-bottom: 6px;
+}
+.card-desc {
+    font-size: 13.5px; color: var(--ash); line-height: 1.5;
+    margin-bottom: 14px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-meta {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 16px;
+}
+.card-address {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12.5px; color: var(--ash);
+}
+.card-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 99px;
+    font-size: 12px; font-weight: 600;
+}
+.status-open {
+    background: #EFF9F4; color: var(--green);
+    border: 1px solid #B2DEC8;
+}
+.btn-order {
+    width: 100%; padding: 11px;
+    background: linear-gradient(135deg, var(--burgundy), var(--burgundy-lt));
+    color: white; border: none; border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+}
+.btn-order:hover {
+    background: linear-gradient(135deg, var(--burgundy-dk), var(--burgundy));
+    box-shadow: 0 6px 20px rgba(107,29,46,.3);
+}
+
+/* ── WALLET BADGE (navbar) ── */
+.wallet-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--gold-pale); border: 1.5px solid var(--gold);
+    color: var(--burgundy); border-radius: 99px;
+    padding: 6px 14px; font-size: 13px; font-weight: 600;
+}
+
+/* ── USER DROPDOWN ── */
+.user-dropdown {
+    position: absolute; right: 0; top: 52px;
+    background: white; border: 1px solid var(--border);
+    border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.12);
+    width: 210px; padding: 8px 0; z-index: 200;
+    animation: dropIn .18s ease;
+    transform-origin: top right;
+}
+.user-dropdown.hidden { display: none; }
+.dropdown-head { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.dropdown-head .label { font-size: 11px; color: var(--ash); margin-bottom: 2px; }
+.dropdown-head .email {
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.user-dropdown a,
+.user-dropdown button {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 16px; font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px; text-decoration: none; width: 100%;
+    background: none; border: none; cursor: pointer; transition: background .15s;
+}
+.user-dropdown a { color: var(--ink); }
+.user-dropdown a:hover,
+.user-dropdown button:hover { background: var(--cream); }
+.user-dropdown .logout-btn { color: var(--red); }
+
+@keyframes dropIn {
+    from { opacity:0; transform: scale(.95) translateY(-8px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── FOOTER ── */
+.fm-footer {
+    background: var(--ink); color: rgba(255,255,255,.55);
+    padding: 32px 24px; text-align: center; margin-top: 0;
+}
+.fm-footer .fb {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 700; color: white;
+    display: block; margin-bottom: 6px;
+}
+.fm-footer .fb em { color: var(--gold); font-style: normal; }
+.fm-footer p { font-size: 13px; }
+
+/* ── PAGE WRAPPER — FIXES FOOTER OVERLAP ──
+   Every page body should be flex column with min-h-screen
+   so footer always stays at bottom, never overlaps content
+*/
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+.page-wrapper main,
+.page-wrapper .fm-main {
+    flex: 1; /* main content grows to push footer down */
+}
+
+/* ── SKELETON ── */
+.skel {
+    background: var(--cream-dk); border-radius: 8px;
+    animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+
+/* ── TOAST (global) ── */
+#toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    padding: 13px 26px; border-radius: 99px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    z-index: 9999;
+    transition: transform .32s cubic-bezier(.34,1.56,.64,1);
+    white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    display: flex; align-items: center; gap: 8px;
+    color: white; background: var(--ink);
+}
+#toast.show    { transform: translateX(-50%) translateY(0); }
+#toast.success { background: #1E6B45; }
+#toast.error   { background: #c0392b; }
+#toast.info    { background: var(--ink); }

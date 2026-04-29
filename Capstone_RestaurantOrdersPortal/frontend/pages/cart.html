@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Food Mania — My Cart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="../css/main.css"/>
+    <link rel="stylesheet" href="../css/cart.css"/>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="fm-navbar">
+    <div class="fm-navbar-inner">
+        <div class="fm-nav-left">
+            <a href="restaurants.html" class="fm-back-btn">← Back</a>
+            <div class="fm-nav-divider"></div>
+            <a href="restaurants.html" class="fm-brand">
+                <span style="font-size:26px">🍽️</span>
+                <span class="fm-brand-text">Food<em>Mania</em></span>
+            </a>
+        </div>
+        <div style="position:relative" id="userMenu">
+            <button class="fm-user-btn" onclick="toggleUserMenu()">
+                <span>👤</span>
+                <span id="userEmailNav">Account</span>
+                <span style="font-size:10px">▼</span>
+            </button>
+            <div id="userDropdown" class="fm-dropdown hidden">
+                <div class="fm-dropdown-header">
+                    <div class="dd-label">Signed in as</div>
+                    <div class="dd-email" id="userEmailDrop"></div>
+                </div>
+                <a href="orders.html"><span>📦</span> My Orders</a>
+                <button onclick="logout()"><span>🚪</span> Sign Out</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="fm-hero">
+    <div class="fm-hero-inner">
+        <h1>My Cart 🛒</h1>
+        <p>Review your items and place your order</p>
+    </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="fm-main">
+
+    <!-- SKELETON -->
+    <div id="skeletonCart" class="fm-grid">
+        <div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+        </div>
+        <div class="skel-box" style="height:300px"></div>
+    </div>
+
+    <!-- EMPTY -->
+    <div id="emptyCart" class="fm-grid" style="display:none">
+        <div class="empty-wrap">
+            <span class="empty-icon">🛒</span>
+            <div class="empty-title">Your cart is empty</div>
+            <p class="empty-sub">Looks like you haven't added anything yet.<br>Browse our restaurants and find something delicious!</p>
+            <a href="restaurants.html" class="btn-browse">🍽️ Browse Restaurants →</a>
+        </div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="errorCart" class="fm-grid" style="display:none">
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px">
+            <div style="font-size:60px;margin-bottom:16px">⚠️</div>
+            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--ink);margin-bottom:8px">Something went wrong</div>
+            <p style="font-family:'DM Sans',sans-serif;color:var(--ash);margin-bottom:20px" id="errorMsg">Could not load cart</p>
+            <button onclick="loadCart()" style="background:var(--burgundy);color:white;border:none;padding:11px 28px;border-radius:99px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:14px">Try Again</button>
+        </div>
+    </div>
+
+    <!-- CART CONTENT -->
+    <div id="cartContent" class="fm-grid" style="display:none">
+
+        <!-- LEFT: Items -->
+        <div>
+            <div class="rest-badge">
+                <span>🏪</span>
+                <span id="restaurantBadgeName">--</span>
+            </div>
+            <div id="cartItemsList"></div>
+            <a href="restaurants.html" class="continue-link">← Continue Shopping</a>
+        </div>
+
+        <!-- RIGHT: Summary -->
+        <div>
+            <div class="summary-box">
+                <div class="summary-title">Order Summary</div>
+                <div class="s-row">
+                    <span>Subtotal (<span id="summaryCount">0</span> items)</span>
+                    <span class="val" id="summarySubtotal">₹0.00</span>
+                </div>
+                <div class="s-row">
+                    <span>Delivery</span>
+                    <span class="free">FREE</span>
+                </div>
+                <div class="s-row">
+                    <span>Taxes (5%)</span>
+                    <span class="val" id="summaryTax">₹0.00</span>
+                </div>
+                <div class="s-total">
+                    <span class="lbl">Total</span>
+                    <span class="amt" id="summaryTotal">₹0.00</span>
+                </div>
+
+                <button class="btn-checkout" id="checkoutBtn" onclick="placeOrder()">
+                    Place Order →
+                </button>
+                <button class="btn-clear" onclick="openClearModal()">🗑️ Clear Cart</button>
+                <p class="secure-note">🔒 Payment via wallet balance</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="fm-footer">
+    <span class="fb">🍽️ Food<em>Mania</em></span>
+    <p>© 2026 Food Mania. Made with ❤️ for food lovers.</p>
+</footer>
+
+<!-- CLEAR CART MODAL -->
+<div id="modalClear" class="modal-bg hidden">
+    <div class="modal-box">
+        <div style="text-align:center;font-size:48px;margin-bottom:14px">🗑️</div>
+        <div class="modal-title">Clear Cart?</div>
+        <p class="modal-sub">All items will be removed. This cannot be undone.</p>
+        <div class="modal-actions">
+            <button onclick="clearCart()" class="modal-btn-danger">Yes, Clear</button>
+            <button onclick="closeClearModal()" class="modal-btn-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ORDER SUCCESS MODAL -->
+<div id="modalOrderSuccess" class="success-modal-bg hidden">
+    <div class="success-modal-box">
+        <span class="success-icon">🎉</span>
+        <div class="success-title">Order Placed!</div>
+        <p class="success-sub">Your order has been placed successfully.</p>
+        <div class="success-order-id" id="successOrderId">Order #--</div>
+        <button onclick="goToOrders()" class="success-btn">📦 View My Orders</button>
+        <a href="restaurants.html" class="success-btn-secondary">🍽️ Order More Food</a>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"><span id="toastIcon">✅</span><span id="toastMsg">Done!</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/cart.js"></script>
+</body>
+</html>
