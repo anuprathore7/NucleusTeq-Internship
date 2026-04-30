@@ -6,10 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * ============================================
- *   Order Entity
- * ============================================
- *
+ * Entity representing a customer order stored in the "orders" table.
  */
 @Entity
 @Table(name = "orders")
@@ -19,66 +16,58 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Which customer placed this order
-     */
+    /** Customer who placed the order. */
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
-    /**
-     * Which restaurant this order is for
-     */
+    /** Restaurant the order was placed at. */
     @ManyToOne
     @JoinColumn(name = "restaurant_id")
     private Restaurant restaurant;
 
-    /**
-     * All items in this order (snapshot from cart)
-     */
+    /** Snapshot of all items included in this order. */
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems;
 
-    /**
-     * Total amount charged
-     */
+    /** Total amount charged for this order. */
     private Double totalAmount;
 
-    /**
-     * Current status of order
-     * PLACED → PENDING → DELIVERED → COMPLETED / CANCELLED
-     */
+    /** Current status in the order lifecycle. */
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    /**
-     * When order was placed
-     * Used for 30-second cancellation rule
-     */
+    /** Timestamp when the order was placed. Used for the 30-second cancellation rule. */
     private LocalDateTime createdAt;
+
+    /** Delivery address selected by the customer at checkout. */
+    @ManyToOne
+    @JoinColumn(name = "delivery_address_id")
+    private Address deliveryAddress;
 
     public Order() {}
 
-    // ── GETTERS & SETTERS ──
+    public Long getId()                          { return id; }
+    public void setId(Long id)                   { this.id = id; }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public UserEntity getUser()                  { return user; }
+    public void setUser(UserEntity user)         { this.user = user; }
 
-    public UserEntity getUser() { return user; }
-    public void setUser(UserEntity user) { this.user = user; }
+    public Restaurant getRestaurant()            { return restaurant; }
+    public void setRestaurant(Restaurant r)      { this.restaurant = r; }
 
-    public Restaurant getRestaurant() { return restaurant; }
-    public void setRestaurant(Restaurant restaurant) { this.restaurant = restaurant; }
+    public List<OrderItem> getOrderItems()       { return orderItems; }
+    public void setOrderItems(List<OrderItem> i) { this.orderItems = i; }
 
-    public List<OrderItem> getOrderItems() { return orderItems; }
-    public void setOrderItems(List<OrderItem> orderItems) { this.orderItems = orderItems; }
+    public Double getTotalAmount()               { return totalAmount; }
+    public void setTotalAmount(Double t)         { this.totalAmount = t; }
 
-    public Double getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+    public OrderStatus getStatus()               { return status; }
+    public void setStatus(OrderStatus status)    { this.status = status; }
 
-    public OrderStatus getStatus() { return status; }
-    public void setStatus(OrderStatus status) { this.status = status; }
+    public LocalDateTime getCreatedAt()          { return createdAt; }
+    public void setCreatedAt(LocalDateTime t)    { this.createdAt = t; }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Address getDeliveryAddress()          { return deliveryAddress; }
+    public void setDeliveryAddress(Address a)    { this.deliveryAddress = a; }
 }

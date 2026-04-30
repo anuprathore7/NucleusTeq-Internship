@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -25,33 +26,44 @@ public class OrderServiceImpl implements OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
-    private final OrderRepository orderRepository;
-    private final CartRepository cartRepository;
-    private final UserRepository userRepository;
+    private final OrderRepository      orderRepository;
+    private final CartRepository       cartRepository;
+    private final UserRepository       userRepository;
     private final RestaurantRepository restaurantRepository;
-    private final JwtService jwtService;
+    private final AddressRepository    addressRepository;
+    private final JwtService           jwtService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             CartRepository cartRepository,
                             UserRepository userRepository,
                             RestaurantRepository restaurantRepository,
+                            AddressRepository addressRepository,
                             JwtService jwtService) {
-        this.orderRepository = orderRepository;
-        this.cartRepository = cartRepository;
-        this.userRepository = userRepository;
+        this.orderRepository      = orderRepository;
+        this.cartRepository       = cartRepository;
+        this.userRepository       = userRepository;
         this.restaurantRepository = restaurantRepository;
-        this.jwtService = jwtService;
+        this.addressRepository    = addressRepository;
+        this.jwtService           = jwtService;
     }
 
     /**
      * Places an order for the authenticated user using items from their cart.
-     * Deducts wallet balance and clears the cart after successful order creation.
+     * Validates the delivery address, deducts wallet balance, and clears the cart.
      */
     @Override
     @Transactional
-    public OrderResponseDto placeOrder(String token) {
+    public OrderResponseDto placeOrder(String token, Long deliveryAddressId) {
 
         UserEntity customer = getUserFromToken(token);
+
+        // Validate delivery address belongs to this user
+        Address deliveryAddress = addressRepository.findById(deliveryAddressId)
+                .orElseThrow(() -> new RuntimeException("Delivery address not found."));
+
+        if (!deliveryAddress.getUser().getId().equals(customer.getId())) {
+            throw new RuntimeException("You are not authorized to use this address.");
+        }
 
         Cart cart = cartRepository.findByUserId(customer.getId())
                 .orElseThrow(() -> new RuntimeException("Your cart is empty. Add items before placing order."));
@@ -78,6 +90,7 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(total);
         order.setStatus(OrderStatus.PLACED);
         order.setCreatedAt(LocalDateTime.now());
+        order.setDeliveryAddress(deliveryAddress);
 
         Order savedOrder = orderRepository.save(order);
 
@@ -99,7 +112,8 @@ public class OrderServiceImpl implements OrderService {
 
         cartRepository.deleteById(cart.getId());
 
-        log.info("Order placed. OrderId={}, UserId={}, Total=₹{}", savedOrder.getId(), customer.getId(), total);
+        log.info("Order placed. OrderId={}, UserId={}, Total=₹{}, Address={}",
+                savedOrder.getId(), customer.getId(), total, deliveryAddress.getId());
 
         return mapToResponse(savedOrder);
     }
@@ -116,7 +130,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * Cancels an order within 30 seconds if it is still in PLACED status.
-     * Refunds the amount to user's wallet.
+     * Refunds the total amount to the user's wallet.
      */
     @Override
     @Transactional
@@ -169,12 +183,12 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new RuntimeException("Restaurant not found or you don't own it."));
 
         List<Order> orders = orderRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId);
-
         return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     /**
      * Updates the status of an order based on valid lifecycle transitions.
+     * Flow: PLACED -> PENDING -> ACCEPTED -> OUT_FOR_DELIVERY -> COMPLETED.
      */
     @Override
     @Transactional
@@ -198,17 +212,16 @@ public class OrderServiceImpl implements OrderService {
         }
 
         validateStatusTransition(order.getStatus(), newStatus);
-
         order.setStatus(newStatus);
         orderRepository.save(order);
 
-        log.info("Order {} status: {} → {} by owner={}", orderId, order.getStatus(), newStatus, owner.getEmail());
+        log.info("Order {} status updated to {} by owner={}", orderId, newStatus, owner.getEmail());
 
         return mapToResponse(order);
     }
 
     /**
-     * Validates allowed order status transitions.
+     * Validates that the requested status transition follows the allowed order lifecycle.
      */
     private void validateStatusTransition(OrderStatus current, OrderStatus next) {
         if (next == OrderStatus.CANCELLED) return;
@@ -223,14 +236,14 @@ public class OrderServiceImpl implements OrderService {
 
         if (!valid) {
             throw new RuntimeException(
-                    "Invalid status transition: " + current + " → " + next +
-                            ". Expected flow: PLACED → PENDING → ACCEPTED → OUT_FOR_DELIVERY → COMPLETED"
+                    "Invalid status transition: " + current + " to " + next +
+                            ". Expected flow: PLACED -> PENDING -> ACCEPTED -> OUT_FOR_DELIVERY -> COMPLETED"
             );
         }
     }
 
     /**
-     * Extracts user details from JWT token.
+     * Extracts the authenticated user from the Bearer token.
      */
     private UserEntity getUserFromToken(String token) {
         String email = jwtService.extractEmail(token.substring(7));
@@ -239,7 +252,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * Converts Order entity into response DTO.
+     * Converts an Order entity into an OrderResponseDto.
      */
     private OrderResponseDto mapToResponse(Order order) {
         List<OrderItemResponseDto> itemDtos = order.getOrderItems() == null
@@ -254,6 +267,13 @@ public class OrderServiceImpl implements OrderService {
                   ))
                   .collect(Collectors.toList());
 
+        // Build delivery address string if present
+        String addressStr = null;
+        if (order.getDeliveryAddress() != null) {
+            Address a = order.getDeliveryAddress();
+            addressStr = a.getStreet() + ", " + a.getCity() + ", " + a.getState() + " - " + a.getPincode();
+        }
+
         return new OrderResponseDto(
                 order.getId(),
                 order.getRestaurant().getId(),
@@ -261,7 +281,8 @@ public class OrderServiceImpl implements OrderService {
                 itemDtos,
                 order.getTotalAmount(),
                 order.getStatus().name(),
-                order.getCreatedAt()
+                order.getCreatedAt(),
+                addressStr
         );
     }
 }

@@ -5,7 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
+/**
+ * Repository for performing database operations on UserEntity.
+ */
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
-    // It will run a query in the database findbyEmail so that we can use this method in our service file.
+
+    /**
+     * Finds a user by their email address. Used during login and JWT validation.
+     */
     Optional<UserEntity> findByEmail(String email);
 }

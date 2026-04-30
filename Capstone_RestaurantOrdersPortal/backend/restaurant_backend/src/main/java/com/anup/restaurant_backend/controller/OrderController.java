@@ -3,13 +3,13 @@ package com.anup.restaurant_backend.controller;
 import com.anup.restaurant_backend.dto.OrderResponseDto;
 import com.anup.restaurant_backend.service.OrderService;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
+import java.util.Map;
 
 /**
- * ============================================
- *   OrderController
- * ============================================
- *
+ * REST controller for all order-related operations.
+ * Handles placing, viewing, cancelling, and status updates for orders.
  */
 @RestController
 @RequestMapping("/api/orders")
@@ -22,18 +22,20 @@ public class OrderController {
     }
 
     /**
-     * PLACE ORDER
+     * Places a new order from the authenticated user's cart.
+     * Expects a JSON body with deliveryAddressId.
      * POST /api/orders/place
-     * Customer only — reads cart from JWT user
      */
     @PostMapping("/place")
     public OrderResponseDto placeOrder(
+            @RequestBody Map<String, Long> body,
             @RequestHeader("Authorization") String token) {
-        return orderService.placeOrder(token);
+        Long addressId = body.get("deliveryAddressId");
+        return orderService.placeOrder(token, addressId);
     }
 
     /**
-     * MY ORDER HISTORY
+     * Returns all orders of the authenticated customer, newest first.
      * GET /api/orders/my-orders
      */
     @GetMapping("/my-orders")
@@ -43,7 +45,7 @@ public class OrderController {
     }
 
     /**
-     * CANCEL ORDER (within 30 seconds)
+     * Cancels an order within the 30-second window if still in PLACED status.
      * DELETE /api/orders/cancel/{orderId}
      */
     @DeleteMapping("/cancel/{orderId}")
@@ -54,7 +56,7 @@ public class OrderController {
     }
 
     /**
-     * VIEW ORDERS FOR A RESTAURANT (owner)
+     * Returns all orders for a restaurant owned by the authenticated user.
      * GET /api/orders/restaurant/{restaurantId}
      */
     @GetMapping("/restaurant/{restaurantId}")
@@ -65,8 +67,8 @@ public class OrderController {
     }
 
     /**
-     * UPDATE ORDER STATUS (owner)
-     * PATCH /api/orders/status/{orderId}?status=PENDING
+     * Updates the status of an order following the defined lifecycle.
+     * PATCH /api/orders/status/{orderId}?status=ACCEPTED
      */
     @PatchMapping("/status/{orderId}")
     public OrderResponseDto updateStatus(

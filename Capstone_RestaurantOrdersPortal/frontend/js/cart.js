@@ -4,6 +4,230 @@
  * ============================================
  *
  */
+/**
+ * ============================================
+ *   Food Mania — Cart JS
+ *   Address selection modal added before order placement.
+ *   All existing cart functions are unchanged below.
+ * ============================================
+ */
+
+// ── ADDRESS MODAL STATE ────────────────────
+let selectedAddressId = null;
+let savedAddresses    = [];
+
+// ── OPEN ADDRESS MODAL ─────────────────────
+// Called when user clicks "Place Order"
+// Loads saved addresses then shows the modal
+async function openAddressModal() {
+    selectedAddressId = null;
+    document.getElementById('confirmOrderBtn').disabled = true;
+
+    // Reset new address form
+    document.getElementById('newAddrForm').classList.remove('open');
+    ['newStreet','newCity','newState','newPincode'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+
+    // Load saved addresses from backend
+    await loadSavedAddresses();
+
+    document.getElementById('modalAddress').classList.remove('hidden');
+}
+
+// ── CLOSE ADDRESS MODAL ────────────────────
+function closeAddressModal() {
+    document.getElementById('modalAddress').classList.add('hidden');
+}
+
+// ── LOAD SAVED ADDRESSES ───────────────────
+// GET /api/addresses
+async function loadSavedAddresses() {
+    const listEl = document.getElementById('savedAddressList');
+    listEl.innerHTML = `<div class="no-addr-msg">Loading addresses...</div>`;
+
+    try {
+        const res  = await apiFetch('/api/addresses');
+        const data = await res.json();
+        savedAddresses = Array.isArray(data) ? data : [];
+        renderAddressList(savedAddresses);
+    } catch (err) {
+        listEl.innerHTML = `<div class="no-addr-msg" style="color:#c0392b">Failed to load addresses. Please try again.</div>`;
+    }
+}
+
+// ── RENDER ADDRESS LIST ────────────────────
+function renderAddressList(addresses) {
+    const listEl = document.getElementById('savedAddressList');
+
+    if (addresses.length === 0) {
+        listEl.innerHTML = `<div class="no-addr-msg">No saved addresses yet. Add one below.</div>`;
+        return;
+    }
+
+    listEl.innerHTML = '';
+    addresses.forEach(addr => {
+        const card = document.createElement('div');
+        card.className = 'addr-card';
+        card.id = `addr-card-${addr.id}`;
+        card.onclick = () => selectAddress(addr.id);
+        card.innerHTML = `
+            <div class="addr-radio" id="addr-radio-${addr.id}"></div>
+            <div class="addr-text">
+                <div class="addr-street">${escHtml(addr.street)}</div>
+                <div class="addr-detail">${escHtml(addr.city)}, ${escHtml(addr.state)} - ${escHtml(addr.pincode)}</div>
+            </div>
+            <button class="addr-delete-btn" onclick="deleteAddress(event, ${addr.id})" title="Remove address">✕</button>
+        `;
+        listEl.appendChild(card);
+    });
+}
+
+// ── SELECT ADDRESS ─────────────────────────
+function selectAddress(addressId) {
+    selectedAddressId = addressId;
+
+    // Update UI
+    document.querySelectorAll('.addr-card').forEach(c => c.classList.remove('selected'));
+    const card = document.getElementById(`addr-card-${addressId}`);
+    if (card) card.classList.add('selected');
+
+    document.getElementById('confirmOrderBtn').disabled = false;
+}
+
+// ── TOGGLE NEW ADDRESS FORM ────────────────
+function toggleNewAddrForm() {
+    document.getElementById('newAddrForm').classList.toggle('open');
+}
+
+// ── SAVE NEW ADDRESS ───────────────────────
+// POST /api/addresses
+async function saveNewAddress() {
+    const street  = document.getElementById('newStreet').value.trim();
+    const city    = document.getElementById('newCity').value.trim();
+    const state   = document.getElementById('newState').value.trim();
+    const pincode = document.getElementById('newPincode').value.trim();
+
+    if (!street || !city || !state || !pincode) {
+        showToast('error', '⚠️', 'Please fill all address fields.');
+        return;
+    }
+
+    try {
+        const res = await apiFetch('/api/addresses', {
+            method: 'POST',
+            body: JSON.stringify({ street, city, state, pincode })
+        });
+
+        if (!res.ok) {
+            showToast('error', '❌', 'Failed to save address.');
+            return;
+        }
+
+        const newAddr = await res.json();
+        savedAddresses.push(newAddr);
+
+        // Clear form and hide it
+        ['newStreet','newCity','newState','newPincode'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('newAddrForm').classList.remove('open');
+
+        // Re-render and auto-select the new address
+        renderAddressList(savedAddresses);
+        selectAddress(newAddr.id);
+
+        showToast('success', '✅', 'Address saved!');
+
+    } catch (err) {
+        showToast('error', '❌', 'Could not save address.');
+    }
+}
+
+// ── DELETE ADDRESS ─────────────────────────
+// DELETE /api/addresses/{id}
+async function deleteAddress(event, addressId) {
+    event.stopPropagation(); // prevent selecting the card
+    if (!confirm('Remove this address?')) return;
+
+    try {
+        const res = await apiFetch(`/api/addresses/${addressId}`, { method: 'DELETE' });
+        if (!res.ok) { showToast('error', '❌', 'Could not remove address.'); return; }
+
+        savedAddresses = savedAddresses.filter(a => a.id !== addressId);
+
+        if (selectedAddressId === addressId) {
+            selectedAddressId = null;
+            document.getElementById('confirmOrderBtn').disabled = true;
+        }
+
+        renderAddressList(savedAddresses);
+        showToast('success', '✅', 'Address removed.');
+
+    } catch (err) {
+        showToast('error', '❌', 'Could not remove address.');
+    }
+}
+
+// ── CONFIRM PLACE ORDER ────────────────────
+// Called when user clicks "Confirm Order" in the modal
+// POST /api/orders/place  with { deliveryAddressId }
+async function confirmPlaceOrder() {
+    if (!selectedAddressId) {
+        showToast('error', '⚠️', 'Please select a delivery address.');
+        return;
+    }
+
+    const btn = document.getElementById('confirmOrderBtn');
+    btn.disabled = true;
+    btn.textContent = 'Placing order...';
+
+    try {
+        const res = await apiFetch('/api/orders/place', {
+            method: 'POST',
+            body: JSON.stringify({ deliveryAddressId: selectedAddressId })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            showToast('error', '❌', data.message || 'Could not place order.');
+            btn.disabled = false;
+            btn.textContent = 'Confirm Order →';
+            return;
+        }
+
+        // Close address modal, show success modal
+        closeAddressModal();
+
+        document.getElementById('successOrderId').textContent = `Order #${data.orderId}`;
+        if (data.deliveryAddress) {
+            document.getElementById('successAddress').textContent = 'Delivering to: ' + data.deliveryAddress;
+        }
+        document.getElementById('modalOrderSuccess').classList.remove('hidden');
+
+    } catch (err) {
+        showToast('error', '❌', 'Could not place order. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Confirm Order →';
+    }
+}
+
+// ── HELPER ────────────────────────────────
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── GO TO ORDERS (used by success modal) ──
+function goToOrders() {
+    window.location.href = 'orders.html';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ALL YOUR EXISTING CART FUNCTIONS BELOW — DO NOT TOUCH THESE
+//  Just paste your existing cart.js content here below this line
+// ─────────────────────────────────────────────────────────────
 
 const FOOD_EMOJIS = ['🍕','🍔','🍜','🍣','🌮','🍛','🍱','🥗','🍗','🥪','🧆','🥘','🍲','🥙','🌯'];
 
