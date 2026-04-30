@@ -9,17 +9,6 @@ import java.util.List;
  * ============================================
  *   MenuItemService (Interface)
  * ============================================
- *
- *  OPERATIONS SUPPORTED:
- *
- * 1. addMenuItem     → Owner adds a food item to their restaurant
- * 2. getMenuItems    → Anyone views all items of a restaurant (PUBLIC)
- * 3. updateMenuItem  → Owner updates an existing item
- * 4. deleteMenuItem  → Owner removes an item
- *
- *  TOKEN PATTERN:
- * Same as RestaurantService and CategoryService.
- * Token comes from Authorization header → passed to service → email extracted.
  */
 public interface MenuItemService {
 

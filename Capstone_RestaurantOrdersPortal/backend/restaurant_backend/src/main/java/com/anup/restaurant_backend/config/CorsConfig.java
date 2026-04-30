@@ -7,23 +7,21 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 /**
- * ============================================
- *   CORS Configuration
- * ============================================
+ * Configuration class for enabling and defining CORS rules.
  */
 @Configuration
 public class CorsConfig {
 
+    /**
+     * Creates and configures a CORS filter for allowing cross-origin requests.
+     */
     @Bean
     public CorsFilter corsFilter() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow ALL origins (any localhost port, any frontend)
-        // In production you would restrict this to your domain
         config.addAllowedOriginPattern("*");
 
-        // Allow all HTTP methods
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
@@ -31,16 +29,12 @@ public class CorsConfig {
         config.addAllowedMethod("PATCH");
         config.addAllowedMethod("OPTIONS");
 
-        // Allow all headers including Authorization (for JWT)
         config.addAllowedHeader("*");
 
-        // Allow Authorization header to be sent
-        // This is needed for JWT token to pass through
         config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-        // Apply to ALL routes
         source.registerCorsConfiguration("/**", config);
 
         return new CorsFilter(source);
