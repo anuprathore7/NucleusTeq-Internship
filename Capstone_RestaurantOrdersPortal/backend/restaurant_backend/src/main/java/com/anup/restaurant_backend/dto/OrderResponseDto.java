@@ -17,9 +17,13 @@ public class OrderResponseDto {
     private String status;
     private LocalDateTime createdAt;
     private String deliveryAddress;   // full address string shown to user
-
+    /**
+        This is default constructor
+     */
     public OrderResponseDto() {}
-
+    /**
+     This is parameterized constructor
+     */
     public OrderResponseDto(Long orderId, Long restaurantId, String restaurantName,
                             List<OrderItemResponseDto> items, Double totalAmount,
                             String status, LocalDateTime createdAt,

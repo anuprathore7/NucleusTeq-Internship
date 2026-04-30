@@ -2,8 +2,12 @@ package com.anup.restaurant_backend.dto;
 
 import com.anup.restaurant_backend.enums.UserRole;
 
+/**
+ * Request object used during user registration.
+ * Contains all necessary details required to create a new user account.
+ */
 public class UserRequestDto {
-    // so these all are the Body that will come from the client side.
+
     private String firstName;
     private String lastName;
     private String email;
@@ -11,55 +15,63 @@ public class UserRequestDto {
     private String phone;
     private UserRole role;
 
-    // 👉 GETTERS & SETTERS
+    /**
+     * Returns first name.
+     */
+    public String getFirstName() { return firstName; }
 
-    public String getFirstName() {
-        return firstName;
-    }
+    /**
+     * Sets first name.
+     */
+    public void setFirstName(String firstName) { this.firstName = firstName; }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
+    /**
+     * Returns last name.
+     */
+    public String getLastName() { return lastName; }
 
-    public String getLastName() {
-        return lastName;
-    }
+    /**
+     * Sets last name.
+     */
+    public void setLastName(String lastName) { this.lastName = lastName; }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
+    /**
+     * Returns email.
+     */
+    public String getEmail() { return email; }
 
-    public String getEmail() {
-        return email;
-    }
+    /**
+     * Sets email.
+     */
+    public void setEmail(String email) { this.email = email; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    /**
+     * Returns password.
+     */
+    public String getPassword() { return password; }
 
-    public String getPassword() {
-        return password;
-    }
+    /**
+     * Sets password.
+     */
+    public void setPassword(String password) { this.password = password; }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    /**
+     * Returns phone.
+     */
+    public String getPhone() { return phone; }
 
-    public String getPhone() {
-        return phone;
-    }
+    /**
+     * Sets phone.
+     */
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+    /**
+     * Returns user role.
+     */
+    public UserRole getRole() { return role; }
 
-    public UserRole getRole() {
-        return role;
-    }
-
-    public void setRole(UserRole role) {
-        this.role = role;
-    }
-
-
+    /**
+     * Sets user role.
+     */
+    public void setRole(UserRole role) { this.role = role; }
 }

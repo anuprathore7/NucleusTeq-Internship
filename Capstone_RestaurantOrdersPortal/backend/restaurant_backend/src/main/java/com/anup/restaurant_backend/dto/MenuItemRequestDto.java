@@ -1,71 +1,80 @@
 package com.anup.restaurant_backend.dto;
 
 /**
- * ============================================
- *   MenuItemRequestDTO
- * ============================================
+ * Request object for creating or updating a menu item.
+ * It carries all details required to define a food item.
  */
 public class MenuItemRequestDto {
 
-    /**
-     * Name of the food item
-     * Example: "Veg Pizza", "Cold Coffee", "Chicken Burger"
-     */
     private String name;
-
-    /**
-     * Short description of the item
-     * Example: "Crispy base with fresh veggies"
-     */
     private String description;
-
-    /**
-     * Price of the item in rupees
-     * Example: 199.0, 349.0
-     */
     private Double price;
-
-    /**
-     * Image URL for the item (optional, used in frontend)
-     * Example: "https://example.com/pizza.jpg"
-     */
     private String imageUrl;
-
-    /**
-     * Is this item currently available?
-     * true  = customer can order it
-     * false = out of stock / hidden
-     */
     private Boolean available;
-
-    /**
-     * Which category does this item belong to?
-     * Example: categoryId=3 means "Starters"
-     *
-     * Category must belong to the same restaurant.
-     * We verify this in service layer.
-     */
     private Long categoryId;
 
-    // ============= CONSTRUCTORS =============
+    /**
+     * Default constructor.
+     */
     public MenuItemRequestDto() {}
 
-    // ============= GETTERS & SETTERS =============
+    /**
+     * Returns item name.
+     */
     public String getName() { return name; }
+
+    /**
+     * Sets item name.
+     */
     public void setName(String name) { this.name = name; }
 
+    /**
+     * Returns description of the item.
+     */
     public String getDescription() { return description; }
+
+    /**
+     * Sets description.
+     */
     public void setDescription(String description) { this.description = description; }
 
+    /**
+     * Returns price.
+     */
     public Double getPrice() { return price; }
+
+    /**
+     * Sets price.
+     */
     public void setPrice(Double price) { this.price = price; }
 
+    /**
+     * Returns image URL.
+     */
     public String getImageUrl() { return imageUrl; }
+
+    /**
+     * Sets image URL.
+     */
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
+    /**
+     * Returns availability status.
+     */
     public Boolean getAvailable() { return available; }
+
+    /**
+     * Sets availability.
+     */
     public void setAvailable(Boolean available) { this.available = available; }
 
+    /**
+     * Returns category ID.
+     */
     public Long getCategoryId() { return categoryId; }
+
+    /**
+     * Sets category ID.
+     */
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 }
