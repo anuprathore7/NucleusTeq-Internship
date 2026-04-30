@@ -1,81 +1,53 @@
 package com.anup.restaurant_backend.controller;
-
 import com.anup.restaurant_backend.dto.MenuItemRequestDto;
 import com.anup.restaurant_backend.dto.MenuItemResponseDto;
 import com.anup.restaurant_backend.service.MenuItemService;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 /**
- * ============================================
- *   MenuItemController
- * ============================================
+ * This controller manages menu items for a restaurant.
+ * It allows owners to add, update, and delete items,
+ * while customers can view the available menu items.
  */
 @RestController
-@RequestMapping("/api/restaurants/{restaurantId}/menu-items")
+@RequestMapping(MenuItemController.BASE_URL)
 public class MenuItemController {
-
+    public static final String BASE_URL="/api/restaurants/{restaurantId}/menu-items";
+    public static final String UPDATE="/{menuItemId}";
     private final MenuItemService menuItemService;
-
-    public MenuItemController(MenuItemService menuItemService) {
-        this.menuItemService = menuItemService;
-    }
-
+    public MenuItemController(MenuItemService menuItemService){this.menuItemService=menuItemService;}
     /**
-     * ADD MENU ITEM
-     * POST /api/restaurants/5/menu-items
-     * Needs token - OWNER only
+     * Adds a new menu item to a restaurant.
+     * This operation is allowed only for the restaurant owner.
      */
     @PostMapping
-    public MenuItemResponseDto addMenuItem(
-            @PathVariable Long restaurantId,
-            @RequestBody MenuItemRequestDto request,
-            @RequestHeader("Authorization") String token) {
-
-        return menuItemService.addMenuItem(restaurantId, request, token);
+    public MenuItemResponseDto addMenuItem(@PathVariable Long restaurantId,@RequestBody MenuItemRequestDto request,@RequestHeader("Authorization") String token){
+        return menuItemService.addMenuItem(restaurantId,request,token);
     }
-
     /**
-     * GET ALL MENU ITEMS OF A RESTAURANT
-     * GET /api/restaurants/5/menu-items
-     * Public - no token needed
-     * Customer uses this to browse the menu
+     * Returns all menu items for a specific restaurant.
+     * This is used by customers to browse food options.
      */
     @GetMapping
-    public List<MenuItemResponseDto> getMenuItems(
-            @PathVariable Long restaurantId) {
-
+    public List<MenuItemResponseDto> getMenuItems(@PathVariable Long restaurantId){
         return menuItemService.getMenuItemsByRestaurant(restaurantId);
     }
-
     /**
-     * UPDATE MENU ITEM
-     * PUT /api/restaurants/5/menu-items/1
-     * Needs token - OWNER only
+     * Updates details of an existing menu item.
+     * Only the restaurant owner can perform this action.
      */
-    @PutMapping("/{menuItemId}")
-    public MenuItemResponseDto updateMenuItem(
-            @PathVariable Long restaurantId,
-            @PathVariable Long menuItemId,
-            @RequestBody MenuItemRequestDto request,
-            @RequestHeader("Authorization") String token) {
-
-        return menuItemService.updateMenuItem(menuItemId, request, token);
+    @PutMapping(UPDATE)
+    public MenuItemResponseDto updateMenuItem(@PathVariable Long restaurantId,@PathVariable Long menuItemId,@RequestBody MenuItemRequestDto request,@RequestHeader("Authorization") String token){
+        return menuItemService.updateMenuItem(menuItemId,request,token);
     }
-
     /**
-     * DELETE MENU ITEM
-     * DELETE /api/restaurants/5/menu-items/1
-     * Needs token - OWNER only
+     * Deletes a menu item from the restaurant.
+     * This action is restricted to the owner.
      */
-    @DeleteMapping("/{menuItemId}")
-    public String deleteMenuItem(
-            @PathVariable Long restaurantId,
-            @PathVariable Long menuItemId,
-            @RequestHeader("Authorization") String token) {
-
-        menuItemService.deleteMenuItem(menuItemId, token);
+    @DeleteMapping(UPDATE)
+    public String deleteMenuItem(@PathVariable Long restaurantId,@PathVariable Long menuItemId,@RequestHeader("Authorization") String token){
+        menuItemService.deleteMenuItem(menuItemId,token);
         return "Menu item deleted successfully";
     }
 }
