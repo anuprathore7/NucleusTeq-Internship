@@ -54,7 +54,6 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponseDto addCategory(Long restaurantId, CategoryRequestDto request, String token) {
 
-        // Exact same pattern as your createRestaurant()
         String email = jwtService.extractEmail(token.substring(7));
 
         UserEntity owner = userRepository.findByEmail(email)

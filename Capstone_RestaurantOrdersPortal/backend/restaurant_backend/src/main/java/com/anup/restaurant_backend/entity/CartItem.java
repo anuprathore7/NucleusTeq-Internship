@@ -5,9 +5,6 @@ import jakarta.persistence.*;
 /**
  *  CartItem Entity
  *
- *  Real-life meaning:
- * Represents each item inside cart
- *
  * Example:
  * Cart:
  * → Pizza x2
