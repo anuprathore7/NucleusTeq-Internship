@@ -4,12 +4,6 @@
 package com.anup.restaurant_backend.enums;
 
 /**
- * ============================================
- *   OrderStatus Enum  —  UPDATED
- * ============================================
- *
- *
- *
  *  Customer places order  →  PLACED
  *  Owner sees it          →  PENDING       (owner sets this)
  *  Owner accepts          →  ACCEPTED      (owner sets this)

@@ -18,13 +18,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * CategoryServiceImpl
- *
- * → Token comes from controller
- * → We do: token.substring(7) to remove "Bearer "
- * → Then extract email using jwtService.extractEmail()
- * → Then fetch user from DB using email
- * → Then do ownership check before any write operation
+ * Service implementation responsible for managing category-related operations
+ * such as adding, updating, retrieving, and deleting categories.
  */
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -47,10 +42,14 @@ public class CategoryServiceImpl implements CategoryService {
         this.jwtService = jwtService;
     }
 
-    // =====================================================
-    //  ADD CATEGORY
-    //  POST /api/restaurants/{restaurantId}/categories
-    // =====================================================
+    /**
+     * Adds a new category to a restaurant owned by the authenticated user.
+     *
+     * @param restaurantId restaurant ID
+     * @param request category data
+     * @param token authentication token
+     * @return created category response
+     */
     @Override
     public CategoryResponseDto addCategory(Long restaurantId, CategoryRequestDto request, String token) {
 
@@ -80,11 +79,12 @@ public class CategoryServiceImpl implements CategoryService {
 
         return mapToResponse(saved);
     }
-
-    // =====================================================
-    //  GET CATEGORIES BY RESTAURANT (PUBLIC - no token needed)
-    //  GET /api/restaurants/{restaurantId}/categories
-    // =====================================================
+    /**
+     * Retrieves all categories for a given restaurant.
+     *
+     * @param restaurantId restaurant ID
+     * @return list of categories
+     */
     @Override
     public List<CategoryResponseDto> getCategoriesByRestaurant(Long restaurantId) {
 
@@ -99,10 +99,14 @@ public class CategoryServiceImpl implements CategoryService {
                 .collect(Collectors.toList());
     }
 
-    // =====================================================
-    //  UPDATE CATEGORY
-    //  PUT /api/restaurants/{restaurantId}/categories/{categoryId}
-    // =====================================================
+    /**
+     * Updates a category if the authenticated user is the owner.
+     *
+     * @param categoryId category ID
+     * @param request updated data
+     * @param token authentication token
+     * @return updated category response
+     */
     @Override
     public CategoryResponseDto updateCategory(Long categoryId, CategoryRequestDto request, String token) {
 
@@ -127,10 +131,12 @@ public class CategoryServiceImpl implements CategoryService {
         return mapToResponse(updated);
     }
 
-    // =====================================================
-    //  DELETE CATEGORY
-    //  DELETE /api/restaurants/{restaurantId}/categories/{categoryId}
-    // =====================================================
+    /**
+     * Deletes a category if the authenticated user is the owner.
+     *
+     * @param categoryId category ID
+     * @param token authentication token
+     */
     @Override
     public void deleteCategory(Long categoryId, String token) {
 
@@ -154,9 +160,7 @@ public class CategoryServiceImpl implements CategoryService {
         log.info("Category deleted successfully");
     }
 
-    // =====================================================
-    //  HELPER - Entity to DTO (same as mapToResponse in RestaurantServiceImpl)
-    // =====================================================
+
     private CategoryResponseDto mapToResponse(Category category) {
         return new CategoryResponseDto(
                 category.getId(),

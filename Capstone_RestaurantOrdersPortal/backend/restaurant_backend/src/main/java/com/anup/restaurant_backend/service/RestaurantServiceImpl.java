@@ -34,6 +34,13 @@ public class RestaurantServiceImpl implements RestaurantService {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Creates a new restaurant for the authenticated owner.
+     *
+     * @param request restaurant details
+     * @param token authentication token
+     * @return created restaurant response
+     */
     @Override
     public RestaurantResponseDto createRestaurant(
             RestaurantRequestDto request,
@@ -65,7 +72,11 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         return mapToResponse(saved);
     }
-
+    /**
+     * Retrieves all restaurants available in the system.
+     *
+     * @return list of restaurant responses
+     */
     @Override
     public List<RestaurantResponseDto> getAllRestaurants() {
 
@@ -80,7 +91,12 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         return list;
     }
-
+    /**
+     * Fetches a restaurant by its ID.
+     *
+     * @param id restaurant ID
+     * @return restaurant response
+     */
     @Override
     public RestaurantResponseDto getRestaurantById(Long id) {
 
@@ -94,7 +110,12 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         return mapToResponse(r);
     }
-
+    /**
+     * Retrieves all restaurants owned by the authenticated user.
+     *
+     * @param token authentication token
+     * @return list of restaurant responses
+     */
     @Override
     public List<RestaurantResponseDto> getRestaurantsByOwnerToken(String token) {
 
@@ -126,7 +147,12 @@ public class RestaurantServiceImpl implements RestaurantService {
                 r.getImagePath()
         );
     }
-
+    /**
+     * Retrieves all restaurants owned by the authenticated user.
+     *
+     * @param token authentication token
+     * @return list of restaurant responses
+     */
     @Override
     public RestaurantResponseDto updateRestaurant(Long id, RestaurantRequestDto request, String token) {
         String email = jwtService.extractEmail(token.substring(7));
@@ -151,7 +177,12 @@ public class RestaurantServiceImpl implements RestaurantService {
         log.info("Owner '{}' updated restaurantId: {}", email, id);
         return mapToResponse(updated);
     }
-
+    /**
+     * Deletes a restaurant if the authenticated user is the owner.
+     *
+     * @param id restaurant ID
+     * @param token authentication token
+     */
     @Override
     public void deleteRestaurant(Long id, String token) {
         String email = jwtService.extractEmail(token.substring(7));
@@ -170,7 +201,14 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurantRepository.deleteById(id);
         log.info("Restaurant deleted successfully");
     }
-
+    /**
+     * Updates the image of a restaurant.
+     *
+     * @param id restaurant ID
+     * @param imagePath image path
+     * @param token authentication token
+     * @return updated restaurant response
+     */
     @Override
     public RestaurantResponseDto updateRestaurantImage(Long id, String imagePath, String token) {
         String email = jwtService.extractEmail(token.substring(7));

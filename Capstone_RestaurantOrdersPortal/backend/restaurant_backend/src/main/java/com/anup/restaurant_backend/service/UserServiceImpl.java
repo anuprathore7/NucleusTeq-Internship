@@ -13,6 +13,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * Service implementation responsible for handling user-related operations
+ * such as registration and login.
+ */
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -26,11 +30,14 @@ public class UserServiceImpl implements UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Registers a new user after validating input data and checking for duplicate email.
+     *
+     * @param dto user registration request data
+     * @return success message
+     */
     @Override
     public String registerUser(UserRequestDto dto) {
-
-        // ── VALIDATION ──────────────────────────────────────
-        // These throw ValidationException → GlobalHandler → { "message": "..." }
 
         ValidationUtil.requireNotBlank(dto.getFirstName(), "First name");
         ValidationUtil.requireNotBlank(dto.getLastName(),  "Last name");
@@ -42,13 +49,11 @@ public class UserServiceImpl implements UserService {
         ValidationUtil.requireMinLength(dto.getPassword(), 6, "Password");
         ValidationUtil.requireNotNull(dto.getRole(), "Role");
 
-        // ── DUPLICATE EMAIL CHECK ────────────────────────────
         Optional<UserEntity> existing = userRepository.findByEmail(dto.getEmail().trim());
         if (existing.isPresent()) {
             throw new ValidationException("This email is already registered. Please sign in.");
         }
 
-        // ── CREATE USER ──────────────────────────────────────
         UserEntity user = new UserEntity();
         user.setFirstName(dto.getFirstName().trim());
         user.setLastName(dto.getLastName().trim());
@@ -56,7 +61,7 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setPhone(dto.getPhone().trim());
         user.setRole(dto.getRole());
-        user.setWalletBalance(1000.0); // free wallet credit on registration
+        user.setWalletBalance(1000.0);
 
         userRepository.save(user);
 
@@ -64,18 +69,21 @@ public class UserServiceImpl implements UserService {
         return "User registered successfully";
     }
 
+    /**
+     * Authenticates a user by validating credentials.
+     *
+     * @param dto login request data
+     * @return success message
+     */
     @Override
     public String loginUser(LoginRequest dto) {
 
-        // ── VALIDATION ──────────────────────────────────────
         ValidationUtil.requireNotBlank(dto.getEmail(),    "Email");
         ValidationUtil.requireNotBlank(dto.getPassword(), "Password");
 
-        // ── FIND USER ────────────────────────────────────────
         UserEntity user = userRepository.findByEmail(dto.getEmail().trim())
                 .orElseThrow(() -> new ValidationException("No account found with this email"));
 
-        // ── CHECK PASSWORD ───────────────────────────────────
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new ValidationException("Incorrect password. Please try again.");
         }

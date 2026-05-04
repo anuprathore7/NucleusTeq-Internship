@@ -47,9 +47,6 @@ public class CartServiceImpl implements CartService {
         this.jwtService = jwtService;
     }
 
-    // =====================================================
-    // ADD ITEM
-    // =====================================================
     @Override
     @Transactional
     public CartResponseDto addItem(CartItemRequestDto request, String token) {

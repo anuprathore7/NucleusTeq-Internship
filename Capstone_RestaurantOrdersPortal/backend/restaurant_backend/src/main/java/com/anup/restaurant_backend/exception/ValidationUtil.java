@@ -1,25 +1,8 @@
 package com.anup.restaurant_backend.exception;
 
 /**
- * ============================================
  *   ValidationUtil
- * ============================================
  *
- *  USE THIS in every Service method
- * to validate input before doing DB operations.
- *
- *  EXAMPLE USAGE in UserServiceImpl:
- *
- * ValidationUtil.requireNotBlank(dto.getEmail(), "Email");
- * ValidationUtil.requireValidEmail(dto.getEmail());
- * ValidationUtil.requireNotBlank(dto.getPassword(), "Password");
- * ValidationUtil.requireMinLength(dto.getPassword(), 6, "Password");
- * ValidationUtil.requireNotBlank(dto.getPhone(), "Phone number");
- * ValidationUtil.requireValidPhone(dto.getPhone());
- *
- * If any check fails → throws ValidationException
- * → GlobalExceptionHandler catches it
- * → Returns { "message": "Email is required" } to frontend
  */
 public class ValidationUtil {
 

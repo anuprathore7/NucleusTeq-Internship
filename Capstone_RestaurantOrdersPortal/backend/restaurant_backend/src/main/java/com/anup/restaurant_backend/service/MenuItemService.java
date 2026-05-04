@@ -6,9 +6,7 @@ import com.anup.restaurant_backend.dto.MenuItemResponseDto;
 import java.util.List;
 
 /**
- * ============================================
  *   MenuItemService (Interface)
- * ============================================
  */
 public interface MenuItemService {
 

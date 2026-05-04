@@ -30,4 +30,8 @@ public class AddressResponseDto {
     public String getState()       { return state; }
     public String getPincode()     { return pincode; }
     public String getFullAddress() { return fullAddress; }
+
+    public void setId(long id) {
+        this.id = id;
+    }
 }

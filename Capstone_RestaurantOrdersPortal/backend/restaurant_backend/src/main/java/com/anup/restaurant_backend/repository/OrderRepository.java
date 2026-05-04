@@ -6,9 +6,6 @@ import java.util.List;
 
 /**
  * OrderRepository
- *
- * findByUserId       → customer's order history
- * findByRestaurantId → owner sees incoming orders
  */
 public interface OrderRepository extends JpaRepository<Order, Long> {
 

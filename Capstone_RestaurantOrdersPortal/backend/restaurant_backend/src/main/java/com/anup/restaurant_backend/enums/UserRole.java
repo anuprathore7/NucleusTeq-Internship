@@ -1,7 +1,6 @@
 package com.anup.restaurant_backend.enums;
 
-/*
- *  WHAT IS THIS FILE?
+/**
  *
  * Enum = fixed set of constants
  *

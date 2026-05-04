@@ -4,19 +4,9 @@ import com.anup.restaurant_backend.dto.CartItemRequestDto;
 import com.anup.restaurant_backend.dto.CartResponseDto;
 
 /**
- * ============================================
  *   CartService Interface
- * ============================================
- *
- *  ALL CART OPERATIONS:
- * 1. addItem    → add food item to cart
- * 2. getCart    → view my current cart
- * 3. updateItem → change quantity of an item
- * 4. removeItem → remove one item from cart
- * 5. clearCart  → empty the entire cart
- *
  *  ALL methods take token → userId extracted inside service
- * No userId ever comes from URL or body (security!)
+ *  No userId ever comes from URL or body (security!)
  */
 public interface CartService {
 

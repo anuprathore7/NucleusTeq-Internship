@@ -57,7 +57,6 @@ public class OrderServiceImpl implements OrderService {
 
         UserEntity customer = getUserFromToken(token);
 
-        // Validate delivery address belongs to this user
         Address deliveryAddress = addressRepository.findById(deliveryAddressId)
                 .orElseThrow(() -> new RuntimeException("Delivery address not found."));
 
