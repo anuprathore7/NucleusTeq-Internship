@@ -234,7 +234,7 @@ function createMenuItemCard(item, index) {
 }
 
 // ─────────────────────────────────────────
-//   ADD TO CART — real backend
+//   ADD TO CART
 //   POST /api/cart/add
 //   Body: { menuItemId, quantity }
 // ─────────────────────────────────────────

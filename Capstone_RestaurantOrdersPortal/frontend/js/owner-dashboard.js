@@ -1,7 +1,7 @@
 
 /**
  * ============================================
- *   Food Mania — Owner Dashboard JS (UPDATED)
+ *   Food Mania — Owner Dashboard JS
  *   Added: Orders panel with Accept / status flow
  * ============================================
  */

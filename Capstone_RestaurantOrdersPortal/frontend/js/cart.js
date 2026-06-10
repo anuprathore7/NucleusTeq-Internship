@@ -2,14 +2,6 @@
  * ============================================
  *   Food Mania — Cart Page JS
  * ============================================
- *
- */
-/**
- * ============================================
- *   Food Mania — Cart JS
- *   Address selection modal added before order placement.
- *   All existing cart functions are unchanged below.
- * ============================================
  */
 
 // ── ADDRESS MODAL STATE ────────────────────
@@ -225,8 +217,7 @@ function goToOrders() {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  ALL YOUR EXISTING CART FUNCTIONS BELOW — DO NOT TOUCH THESE
-//  Just paste your existing cart.js content here below this line
+//  ALL YOUR EXISTING CART FUNCTIONS BELOW
 // ─────────────────────────────────────────────────────────────
 
 const FOOD_EMOJIS = ['🍕','🍔','🍜','🍣','🌮','🍛','🍱','🥗','🍗','🥪','🧆','🥘','🍲','🥙','🌯'];
@@ -360,11 +351,6 @@ function updateSummary(cart) {
 // ─────────────────────────────────────────
 //   CHANGE QUANTITY
 //   PUT /api/cart/update/{cartItemId}?quantity=N
-//
-//   KEY FIX: The onclick passes the CURRENT quantity
-//   from the DOM, not from a stale variable.
-//   After each update we REFRESH the onclick handlers
-//   so the next click always has the latest qty.
 // ─────────────────────────────────────────
 async function changeQty(cartItemId, currentQty, delta) {
     const newQty = currentQty + delta;
@@ -491,7 +477,6 @@ async function clearCart() {
 // ─────────────────────────────────────────
 //   PLACE ORDER
 //   POST /api/orders/place
-//   No body — backend reads cart from JWT token
 // ─────────────────────────────────────────
 async function placeOrder() {
     const btn = document.getElementById('checkoutBtn');

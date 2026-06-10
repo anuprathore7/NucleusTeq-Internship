@@ -40,7 +40,7 @@ async function apiFetch(endpoint, options = {}) {
         ...(options.headers || {})
     };
 
-    // ❌ Only add JSON header if body is NOT FormData
+    //  Only add JSON header if body is NOT FormData
     if (!(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
     }

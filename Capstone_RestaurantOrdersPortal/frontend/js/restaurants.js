@@ -1,6 +1,6 @@
 /**
  * Food Mania — Restaurants Page JS
- * FIXED: Wallet balance fetches from /api/users/profile
+ * Wallet balance fetches from /api/users/profile
  */
 
 let allRestaurants = [];
@@ -42,7 +42,6 @@ function toggleUserMenu() {
 /**
  * Calls GET /api/users/profile
  * Gets walletBalance from response
- * Updates the wallet badge in navbar
  */
 async function loadWalletBalance() {
     try {
