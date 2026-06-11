@@ -5,7 +5,7 @@ def perform_arithmetic_operations(first_number: int, second_number: int) -> None
 
     print(f"Sum: {first_number + second_number}")
     print(f"Difference: {first_number - second_number}")
-    print(f"Multiplication: {first_number * second_number}")
+    print(f"Multiplication: {first_number * second_number}") 
     print(f"Division: {first_number / second_number}")
 
 """Executes the program only when this file is run directly """
