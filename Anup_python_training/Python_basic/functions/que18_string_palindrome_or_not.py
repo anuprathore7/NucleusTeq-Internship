@@ -1,8 +1,3 @@
-"""
-This module contains functions to check whether
-a number or string is palindrome.
-"""
-
 
 """ This function checks whether a given value is palindrome or not. """
 def check_palindrome(input_string: str) -> bool:
