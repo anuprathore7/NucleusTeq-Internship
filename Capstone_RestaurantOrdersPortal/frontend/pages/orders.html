@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Food Mania — My Orders</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="../css/main.css"/>
+    <style>
+        .order-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            transition: box-shadow .2s, transform .2s;
+        }
+        .order-card:hover { box-shadow: 0 8px 30px rgba(107,29,46,.10); transform: translateY(-1px); }
+
+        /* ── STATUS BADGES ── */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 99px;
+            font-size: 12px; font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .status-PLACED           { background:#EFF4FF; color:#2563EB; border:1px solid #BFDBFE; }
+        .status-PENDING          { background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; }
+        .status-ACCEPTED         { background:#F0FDF4; color:#15803D; border:1px solid #BBF7D0; }
+        .status-OUT_FOR_DELIVERY { background:#EEF2FF; color:#4338CA; border:1px solid #C7D2FE; }
+        .status-COMPLETED        { background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; }
+        .status-CANCELLED        { background:#FDF0EF; color:#C0392B; border:1px solid #F5C6C3; }
+
+        /* ── STEPPER ── */
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin: 16px 0 4px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 70px;
+            flex: 1;
+            position: relative;
+        }
+        .step-dot {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            background: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+            z-index: 1;
+            transition: all .3s;
+        }
+        .step-dot.done  { background: #15803D; border-color: #15803D; color: white; }
+        .step-dot.active { background: #2563EB; border-color: #2563EB; color: white; animation: pulse-dot 1.5s infinite; }
+        .step-dot.cancelled { background: #C0392B; border-color: #C0392B; color: white; }
+        @keyframes pulse-dot {
+            0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.4); }
+            50% { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
+        }
+        .step-line {
+            flex: 1; height: 2px;
+            background: #e5e7eb;
+            margin-top: -16px;
+            transition: background .3s;
+        }
+        .step-line.done { background: #15803D; }
+        .step-label {
+            font-size: 9.5px;
+            font-weight: 600;
+            color: #9ca3af;
+            text-align: center;
+            font-family: 'DM Sans', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            line-height: 1.3;
+            max-width: 65px;
+        }
+        .step-label.done   { color: #15803D; }
+        .step-label.active { color: #2563EB; font-weight: 700; }
+        .step-label.cancelled { color: #C0392B; }
+
+        .cancel-btn {
+            padding: 7px 18px; border-radius: 99px;
+            border: 1.5px solid #C0392B; background: white;
+            color: #C0392B; font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px; font-weight: 600;
+            cursor: pointer; transition: all .2s;
+        }
+        .cancel-btn:hover { background: #FDF0EF; }
+
+        #toast {
+            position: fixed; bottom: 28px; left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 13px 26px; border-radius: 99px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+            z-index: 9999; transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+            white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+            display: flex; align-items: center; gap: 10px; color: white;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.success { background: #1E6B45; }
+        #toast.error { background: #c0392b; }
+    </style>
+</head>
+<body class="bg-cream min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="sticky top-0 z-50 bg-white border-b border-gold/20 shadow-sm">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="restaurants.html" class="text-ash hover:text-burgundy transition text-sm font-dm font-medium">← Home</a>
+            <span class="text-gold/40">|</span>
+            <span class="text-2xl">🍽️</span>
+            <span class="font-playfair text-2xl font-bold text-burgundy">Food<span class="text-gold">Mania</span></span>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="cart.html" class="flex items-center gap-2 text-sm font-dm text-ash hover:text-burgundy transition">🛒 Cart</a>
+            <button onclick="logout()" class="text-sm text-ash hover:text-red-500 font-dm transition">🚪 Sign Out</button>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<div class="bg-gradient-to-br from-burgundy-dk via-burgundy to-burgundy-lt text-white py-10 px-6">
+    <div class="max-w-4xl mx-auto flex items-center justify-between flex-wrap gap-4">
+        <div>
+            <h1 class="font-playfair text-4xl font-bold mb-1">My Orders 📦</h1>
+            <p class="text-white/70 font-dm">Track all your past and current orders</p>
+        </div>
+        <button onclick="loadOrders()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-full text-sm font-dm font-medium transition">
+            🔄 Refresh
+        </button>
+    </div>
+</div>
+
+<!-- MAIN -->
+<main class="max-w-4xl mx-auto px-6 py-10 space-y-6">
+    <div id="ordersLoading" class="space-y-4">
+        <div class="animate-pulse bg-white rounded-2xl h-36 border border-gold/10"></div>
+        <div class="animate-pulse bg-white rounded-2xl h-36 border border-gold/10"></div>
+        <div class="animate-pulse bg-white rounded-2xl h-36 border border-gold/10"></div>
+    </div>
+    <div id="ordersEmpty" class="hidden text-center py-24 bg-white rounded-2xl border border-gold/10">
+        <div class="text-6xl mb-4">📦</div>
+        <h3 class="font-playfair text-2xl font-bold text-ink mb-2">No orders yet</h3>
+        <p class="text-ash font-dm mb-6">Place your first order from our restaurants</p>
+        <a href="restaurants.html" class="inline-block bg-burgundy text-white px-6 py-3 rounded-full font-dm font-semibold hover:bg-burgundy-dk transition">
+            Browse Restaurants →
+        </a>
+    </div>
+    <div id="ordersList" class="hidden space-y-5"></div>
+</main>
+
+<footer class="bg-ink text-white/60 py-6 mt-16">
+    <div class="max-w-4xl mx-auto px-6 text-center text-sm font-dm">
+        © 2026 Food Mania. Made with ❤️ for food lovers.
+    </div>
+</footer>
+
+<div id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
+
+<script src="../js/utils.js"></script>
+<script>
+    // ── ORDER STATUS FLOW ──────────────────────────────────
+    // PLACED → PENDING → ACCEPTED → OUT_FOR_DELIVERY → COMPLETED
+    // CANCELLED is a terminal state shown differently
+
+    const STATUS_STEPS = ['PLACED', 'PENDING', 'ACCEPTED', 'OUT_FOR_DELIVERY', 'COMPLETED'];
+    const STATUS_LABELS = {
+        PLACED:           '🔵 Placed',
+        PENDING:          '🟠 Pending',
+        ACCEPTED:         '✅ Accepted',
+        OUT_FOR_DELIVERY: '🛵 On the way',
+        COMPLETED:        '🎉 Delivered',
+        CANCELLED:        '❌ Cancelled'
+    };
+    const STEP_ICONS = ['📝', '⏳', '✅', '🛵', '🎉'];
+    const STEP_NAMES = ['Placed', 'Pending', 'Accepted', 'Out for\nDelivery', 'Delivered'];
+
+    let allOrders = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        requireAuth();
+        loadOrders();
+        // Auto-refresh every 30s so customer sees status updates
+        setInterval(loadOrders, 30000);
+    });
+
+    // ── LOAD ORDERS ────────────────────────────────────────
+
+    async function loadOrders() {
+        try {
+            const res = await apiFetch('/api/orders/my-orders');
+            const data = await res.json();
+
+            document.getElementById('ordersLoading').classList.add('hidden');
+
+            if (!Array.isArray(data) || data.length === 0) {
+                document.getElementById('ordersEmpty').classList.remove('hidden');
+                document.getElementById('ordersList').classList.add('hidden');
+                return;
+            }
+
+            allOrders = data;
+            document.getElementById('ordersEmpty').classList.add('hidden');
+            document.getElementById('ordersList').classList.remove('hidden');
+            renderOrders(data);
+
+        } catch (err) {
+            console.error('Orders load error:', err);
+            document.getElementById('ordersLoading').classList.add('hidden');
+            document.getElementById('ordersEmpty').classList.remove('hidden');
+        }
+    }
+
+    // ── RENDER ─────────────────────────────────────────────
+
+    function renderOrders(orders) {
+        const list = document.getElementById('ordersList');
+        list.innerHTML = '';
+        orders.forEach(order => list.appendChild(createOrderCard(order)));
+    }
+
+    function createOrderCard(order) {
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        card.id = `order-${order.orderId}`;
+
+        const canCancel = order.status === 'PLACED' && isWithin30Seconds(order.createdAt);
+        const date = formatDate(order.createdAt);
+        const isCancelled = order.status === 'CANCELLED';
+
+        const itemsHtml = (order.items || []).map(item =>
+            `<div class="flex justify-between text-sm font-dm py-1">
+            <span class="text-ink">${escapeHtml(item.itemName)} <span class="text-ash">×${item.quantity}</span></span>
+            <span class="text-ash">₹${item.subtotal.toFixed(2)}</span>
+        </div>`
+        ).join('');
+
+        card.innerHTML = `
+        <!-- Header -->
+        <div class="p-5 border-b border-gold/10 flex items-start justify-between gap-4 flex-wrap">
+            <div>
+                <div class="flex items-center gap-3 mb-1 flex-wrap">
+                    <span class="font-playfair text-lg font-bold text-ink">Order #${order.orderId}</span>
+                    <span class="status-badge status-${order.status}">
+                        ${STATUS_LABELS[order.status] || order.status}
+                    </span>
+                </div>
+                <p class="text-ash text-sm font-dm">🏪 ${escapeHtml(order.restaurantName)} · ${date}</p>
+            </div>
+            <div class="text-right">
+                <p class="font-playfair text-2xl font-bold text-burgundy">₹${order.totalAmount.toFixed(2)}</p>
+                ${canCancel
+            ? `<button class="cancel-btn mt-2" onclick="cancelOrder(${order.orderId})">Cancel Order</button>`
+            : ''
+        }
+            </div>
+        </div>
+
+        <!-- Progress Stepper -->
+        ${!isCancelled ? buildStepper(order.status) : `
+        <div class="px-5 py-4 bg-red-50 border-b border-red-100">
+            <p class="text-sm font-dm text-red-600 font-medium">❌ This order was cancelled${order.totalAmount ? ` — ₹${order.totalAmount.toFixed(2)} refunded to your wallet` : ''}.</p>
+        </div>`}
+
+        <!-- Items -->
+        <div class="p-5">
+            <p class="text-xs font-semibold text-ash uppercase tracking-wider mb-3 font-dm">Items Ordered</p>
+            ${itemsHtml}
+            <div class="border-t border-gold/10 mt-3 pt-3 flex justify-between">
+                <span class="font-semibold text-ink font-dm">Total</span>
+                <span class="font-playfair font-bold text-burgundy">₹${order.totalAmount.toFixed(2)}</span>
+            </div>
+        </div>
+
+        ${canCancel ? `
+        <div class="bg-blue-50 border-t border-blue-100 px-5 py-3">
+            <p class="text-xs text-blue-600 font-dm font-medium">⏱️ You can cancel within 30 seconds of placing.</p>
+        </div>` : ''}
+    `;
+
+        return card;
+    }
+
+    function buildStepper(currentStatus) {
+        const currentIdx = STATUS_STEPS.indexOf(currentStatus);
+
+        let html = `<div class="px-5 pt-4 pb-2 border-b border-gold/10">
+        <p class="text-xs font-semibold text-ash uppercase tracking-wider mb-3 font-dm">Order Progress</p>
+        <div class="stepper">`;
+
+        STATUS_STEPS.forEach((step, i) => {
+            const isDone   = i < currentIdx;
+            const isActive = i === currentIdx;
+            const dotClass = isDone ? 'done' : isActive ? 'active' : '';
+            const lblClass = isDone ? 'done' : isActive ? 'active' : '';
+
+            if (i > 0) {
+                html += `<div class="step-line ${isDone ? 'done' : ''}"></div>`;
+            }
+
+            html += `
+            <div class="step">
+                <div class="step-dot ${dotClass}">${isDone ? '✓' : STEP_ICONS[i]}</div>
+                <div class="step-label ${lblClass}">${STEP_NAMES[i].replace('\n', '<br>')}</div>
+            </div>`;
+        });
+
+        html += `</div></div>`;
+        return html;
+    }
+
+    // ── CANCEL ─────────────────────────────────────────────
+
+    async function cancelOrder(orderId) {
+        if (!confirm('Cancel this order? The amount will be refunded to your wallet.')) return;
+
+        try {
+            const res = await apiFetch(`/api/orders/cancel/${orderId}`, { method: 'DELETE' });
+            const data = await res.json();
+
+            if (!res.ok) {
+                showToast('error', '❌', data.message || 'Could not cancel order');
+                return;
+            }
+
+            showToast('success', '✅', 'Order cancelled. Amount refunded to wallet!');
+            setTimeout(loadOrders, 800);
+
+        } catch (err) {
+            showToast('error', '❌', 'Could not cancel order. Please try again.');
+        }
+    }
+
+    // ── HELPERS ────────────────────────────────────────────
+
+    function isWithin30Seconds(createdAt) {
+        if (!createdAt) return false;
+        return (new Date() - new Date(createdAt)) / 1000 <= 30;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '--';
+        try {
+            return new Date(dateStr).toLocaleDateString('en-IN', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        } catch { return dateStr; }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    let toastTimer;
+    function showToast(type, icon, msg) {
+        clearTimeout(toastTimer);
+        const t = document.getElementById('toast');
+        document.getElementById('toastIcon').textContent = icon;
+        document.getElementById('toastMsg').textContent = msg;
+        t.className = `show ${type}`;
+        toastTimer = setTimeout(() => t.className = type, 2800);
+    }
+</script>
+</body>
+</html>

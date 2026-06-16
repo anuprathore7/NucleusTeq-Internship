@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Food Mania — My Cart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="../css/main.css"/>
+    <link rel="stylesheet" href="../css/cart.css"/>
+    <style>
+        /* ── ADDRESS MODAL ── */
+        .addr-modal-bg {
+            position: fixed; inset: 0;
+            background: rgba(28,15,15,.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+            animation: fadeIn .18s ease;
+        }
+        .addr-modal-bg.hidden { display: none; }
+
+        .addr-modal-box {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            width: 100%; max-width: 520px;
+            box-shadow: 0 32px 80px rgba(28,15,15,.22);
+            animation: slideUp .22s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .addr-modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px; font-weight: 700;
+            color: var(--ink); margin-bottom: 6px;
+        }
+        .addr-modal-sub {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px; color: var(--ash);
+            margin-bottom: 20px;
+        }
+
+        /* Saved address card */
+        .addr-card {
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all .2s;
+            margin-bottom: 10px;
+            display: flex; align-items: flex-start; gap: 12px;
+        }
+        .addr-card:hover  { border-color: var(--burgundy); background: var(--cream); }
+        .addr-card.selected { border-color: var(--burgundy); background: rgba(107,29,46,.05); }
+
+        .addr-radio {
+            width: 18px; height: 18px; border-radius: 50%;
+            border: 2px solid var(--border);
+            flex-shrink: 0; margin-top: 2px;
+            transition: all .2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .addr-card.selected .addr-radio {
+            border-color: var(--burgundy);
+            background: var(--burgundy);
+        }
+        .addr-card.selected .addr-radio::after {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%; background: white;
+        }
+
+        .addr-text { flex: 1; }
+        .addr-street { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); }
+        .addr-detail { font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: var(--ash); margin-top: 2px; }
+
+        .addr-delete-btn {
+            background: none; border: none; cursor: pointer;
+            color: #c0392b; font-size: 14px; padding: 2px 6px;
+            border-radius: 6px; transition: background .2s;
+            flex-shrink: 0;
+        }
+        .addr-delete-btn:hover { background: #fdf0ef; }
+
+        /* Add new address form */
+        .add-addr-toggle {
+            display: flex; align-items: center; gap-8px;
+            font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600;
+            color: var(--burgundy); cursor: pointer; margin: 14px 0 0;
+            background: none; border: none; padding: 0;
+        }
+        .add-addr-toggle:hover { text-decoration: underline; }
+
+        .new-addr-form { margin-top: 14px; display: none; }
+        .new-addr-form.open { display: block; }
+
+        .addr-form-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+        }
+        .addr-input {
+            width: 100%; padding: 9px 12px;
+            border: 1.5px solid var(--border); border-radius: 10px;
+            font-family: 'DM Sans', sans-serif; font-size: 13.5px;
+            color: var(--ink); background: var(--cream);
+            outline: none; transition: all .2s;
+            box-sizing: border-box;
+        }
+        .addr-input:focus { border-color: var(--gold); background: white; box-shadow: 0 0 0 3px rgba(201,168,76,.12); }
+        .addr-input::placeholder { color: #b8a898; }
+        .addr-input.full { grid-column: 1 / -1; }
+
+        .btn-save-addr {
+            width: 100%;
+            padding: 10px;
+            background: var(--ink);
+            color: white;
+            border: none; border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13.5px; font-weight: 600;
+            cursor: pointer; transition: all .2s;
+            margin-top: 4px;
+        }
+        .btn-save-addr:hover { background: #2a1a1a; }
+
+        /* Modal actions */
+        .addr-modal-actions {
+            display: flex; gap: 10px; margin-top: 20px;
+        }
+        .btn-confirm-addr {
+            flex: 1; padding: 12px;
+            background: linear-gradient(135deg, var(--burgundy-dk), var(--burgundy-lt));
+            color: white; border: none; border-radius: 12px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all .2s;
+            box-shadow: 0 4px 14px rgba(107,29,46,.3);
+        }
+        .btn-confirm-addr:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(107,29,46,.4); }
+        .btn-confirm-addr:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+        .btn-cancel-addr {
+            padding: 12px 20px;
+            background: var(--cream); color: var(--ink);
+            border: 1.5px solid var(--border); border-radius: 12px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+            cursor: pointer; transition: all .2s;
+        }
+        .btn-cancel-addr:hover { border-color: var(--burgundy); color: var(--burgundy); }
+
+        .no-addr-msg {
+            text-align: center; padding: 20px;
+            font-family: 'DM Sans', sans-serif; color: var(--ash); font-size: 13.5px;
+        }
+
+        @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+        @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+    </style>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="fm-navbar">
+    <div class="fm-navbar-inner">
+        <div class="fm-nav-left">
+            <a href="restaurants.html" class="fm-back-btn">← Back</a>
+            <div class="fm-nav-divider"></div>
+            <a href="restaurants.html" class="fm-brand">
+                <span style="font-size:26px">🍽️</span>
+                <span class="fm-brand-text">Food<em>Mania</em></span>
+            </a>
+        </div>
+        <div style="position:relative" id="userMenu">
+            <button class="fm-user-btn" onclick="toggleUserMenu()">
+                <span>👤</span>
+                <span id="userEmailNav">Account</span>
+                <span style="font-size:10px">▼</span>
+            </button>
+            <div id="userDropdown" class="fm-dropdown hidden">
+                <div class="fm-dropdown-header">
+                    <div class="dd-label">Signed in as</div>
+                    <div class="dd-email" id="userEmailDrop"></div>
+                </div>
+                <a href="orders.html"><span>📦</span> My Orders</a>
+                <button onclick="logout()"><span>🚪</span> Sign Out</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="fm-hero">
+    <div class="fm-hero-inner">
+        <h1>My Cart 🛒</h1>
+        <p>Review your items and place your order</p>
+    </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="fm-main">
+
+    <!-- SKELETON -->
+    <div id="skeletonCart" class="fm-grid">
+        <div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+        </div>
+        <div class="skel-box" style="height:300px"></div>
+    </div>
+
+    <!-- EMPTY -->
+    <div id="emptyCart" class="fm-grid" style="display:none">
+        <div class="empty-wrap">
+            <span class="empty-icon">🛒</span>
+            <div class="empty-title">Your cart is empty</div>
+            <p class="empty-sub">Looks like you haven't added anything yet.<br>Browse our restaurants and find something delicious!</p>
+            <a href="restaurants.html" class="btn-browse">Browse Restaurants →</a>
+        </div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="errorCart" class="fm-grid" style="display:none">
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px">
+            <div style="font-size:60px;margin-bottom:16px">⚠️</div>
+            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--ink);margin-bottom:8px">Something went wrong</div>
+            <p style="font-family:'DM Sans',sans-serif;color:var(--ash);margin-bottom:20px" id="errorMsg">Could not load cart</p>
+            <button onclick="loadCart()" style="background:var(--burgundy);color:white;border:none;padding:11px 28px;border-radius:99px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:14px">Try Again</button>
+        </div>
+    </div>
+
+    <!-- CART CONTENT -->
+    <div id="cartContent" class="fm-grid" style="display:none">
+
+        <!-- LEFT: Items -->
+        <div>
+            <div class="rest-badge">
+                <span>🏪</span>
+                <span id="restaurantBadgeName">--</span>
+            </div>
+            <div id="cartItemsList"></div>
+            <a href="restaurants.html" class="continue-link">← Continue Shopping</a>
+        </div>
+
+        <!-- RIGHT: Summary -->
+        <div>
+            <div class="summary-box">
+                <div class="summary-title">Order Summary</div>
+                <div class="s-row">
+                    <span>Subtotal (<span id="summaryCount">0</span> items)</span>
+                    <span class="val" id="summarySubtotal">₹0.00</span>
+                </div>
+                <div class="s-row">
+                    <span>Delivery</span>
+                    <span class="free">FREE</span>
+                </div>
+                <div class="s-row">
+                    <span>Taxes (5%)</span>
+                    <span class="val" id="summaryTax">₹0.00</span>
+                </div>
+                <div class="s-total">
+                    <span class="lbl">Total</span>
+                    <span class="amt" id="summaryTotal">₹0.00</span>
+                </div>
+
+                <!-- Place Order opens the address modal -->
+                <button class="btn-checkout" id="checkoutBtn" onclick="openAddressModal()">
+                    Place Order →
+                </button>
+                <button class="btn-clear" onclick="openClearModal()">🗑️ Clear Cart</button>
+                <p class="secure-note">🔒 Payment via wallet balance</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="fm-footer">
+    <span class="fb">🍽️ Food<em>Mania</em></span>
+    <p>© 2026 Food Mania. Made with ❤️ for food lovers.</p>
+</footer>
+
+<!-- CLEAR CART MODAL -->
+<div id="modalClear" class="modal-bg hidden">
+    <div class="modal-box">
+        <div style="text-align:center;font-size:48px;margin-bottom:14px">🗑️</div>
+        <div class="modal-title">Clear Cart?</div>
+        <p class="modal-sub">All items will be removed. This cannot be undone.</p>
+        <div class="modal-actions">
+            <button onclick="clearCart()" class="modal-btn-danger">Yes, Clear</button>
+            <button onclick="closeClearModal()" class="modal-btn-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ORDER SUCCESS MODAL -->
+<div id="modalOrderSuccess" class="success-modal-bg hidden">
+    <div class="success-modal-box">
+        <span class="success-icon">🎉</span>
+        <div class="success-title">Order Placed!</div>
+        <p class="success-sub">Your order has been placed successfully.</p>
+        <div class="success-order-id" id="successOrderId">Order #--</div>
+        <p class="success-sub" id="successAddress" style="font-size:13px;margin-top:8px;color:#666"></p>
+        <button onclick="goToOrders()" class="success-btn">📦 View My Orders</button>
+        <a href="restaurants.html" class="success-btn-secondary">Order More Food</a>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     ADDRESS SELECTION MODAL  (NEW)
+═══════════════════════════════════ -->
+<div id="modalAddress" class="addr-modal-bg hidden">
+    <div class="addr-modal-box">
+        <div class="addr-modal-title">Select Delivery Address</div>
+        <div class="addr-modal-sub">Choose where you want your order delivered</div>
+
+        <!-- Saved addresses list -->
+        <div id="savedAddressList">
+            <!-- Filled by JS -->
+        </div>
+
+        <!-- Add new address toggle -->
+        <button class="add-addr-toggle" onclick="toggleNewAddrForm()">
+            + Add a new address
+        </button>
+
+        <!-- New address form (hidden by default) -->
+        <div class="new-addr-form" id="newAddrForm">
+            <div class="addr-form-grid">
+                <input class="addr-input full" id="newStreet"  type="text" placeholder="Street / House No / Area *"/>
+                <input class="addr-input"      id="newCity"    type="text" placeholder="City *"/>
+                <input class="addr-input"      id="newState"   type="text" placeholder="State *"/>
+                <input class="addr-input"      id="newPincode" type="text" placeholder="Pincode *" maxlength="6"/>
+            </div>
+            <button class="btn-save-addr" onclick="saveNewAddress()">Save Address</button>
+        </div>
+
+        <!-- Actions -->
+        <div class="addr-modal-actions">
+            <button class="btn-confirm-addr" id="confirmOrderBtn" onclick="confirmPlaceOrder()" disabled>
+                Confirm Order →
+            </button>
+            <button class="btn-cancel-addr" onclick="closeAddressModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"><span id="toastIcon">✅</span><span id="toastMsg">Done!</span></div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/cart.js"></script>
+</body>
+</html>
