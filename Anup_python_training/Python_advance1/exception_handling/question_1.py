@@ -16,5 +16,7 @@ def get_integer() -> int:
         return 0
 
 
-number: int = get_integer()
-print(f"Entered Number: {number}")
+"""Executes the program only when this file is run directly."""
+if __name__ == "__main__":
+    number: int = get_integer()
+    print(f"Entered Number: {number}")
