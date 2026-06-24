@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config.database import client
+from app.constants.url_prefix import URL_PREFIX
 
 
 @asynccontextmanager
@@ -31,7 +32,7 @@ app = FastAPI(
 )
 
 
-@app.get("/")
+@app.get("/" )
 async def health_check():
     """
     Health check endpoint.
