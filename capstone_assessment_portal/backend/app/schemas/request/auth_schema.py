@@ -44,8 +44,7 @@ class RegisterUserSchema(BaseModel):
         ADMIN_ROLE,
         STUDENT_ROLE
     ] = Field(
-        ...,
-        description="Role assigned to the user"
+        description="Role assigned to the user",default=STUDENT_ROLE
     )
 
 

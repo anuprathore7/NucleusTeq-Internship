@@ -9,6 +9,7 @@ from app.utils.password_utils import hash_password, verify_password
 from app.utils.jwt_utils import create_access_token
 from app.exceptions.auth_exceptions import (UserAlreadyExistsException,InvalidCredentialsException)
 from app.utils.user_mapper import user_to_response
+from app.constants.roles import STUDENT_ROLE
 
 
 class AuthService:
@@ -41,6 +42,7 @@ class AuthService:
         new_user = {
             **data.model_dump(),
             "password": hashed_pw,
+            "role": STUDENT_ROLE,
             "is_active": True,
             "created_at": datetime.now(timezone.utc)  # always store UTC time
         }
