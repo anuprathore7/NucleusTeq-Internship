@@ -4,11 +4,6 @@ from pydantic import BaseModel
 from pydantic import EmailStr
 from pydantic import Field
 
-from app.constants.roles import (
-    ADMIN_ROLE,
-    STUDENT_ROLE
-)
-
 
 class RegisterUserSchema(BaseModel):
     """
@@ -40,13 +35,6 @@ class RegisterUserSchema(BaseModel):
         example="Anup@123"
     )
 
-    role: Literal[
-        ADMIN_ROLE,
-        STUDENT_ROLE
-    ] = Field(
-        description="Role assigned to the user",default=STUDENT_ROLE
-    )
-
 
 class LoginSchema(BaseModel):
     """
@@ -61,4 +49,15 @@ class LoginSchema(BaseModel):
     password: str = Field(
         ...,
         example="Anup@123"
+    )
+
+class RefreshTokenSchema(BaseModel):
+    """
+    Request body for the refresh token endpoint.
+    Client sends the refresh token to get a new access token.
+    """
+    refresh_token: str = Field(
+        ...,
+        description="The refresh token received during login",
+        example="eyJhbGciOiJIUzI1NiJ9..."
     )

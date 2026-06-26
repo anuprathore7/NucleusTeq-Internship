@@ -7,6 +7,11 @@ from app.schemas.request.auth_schema import RegisterUserSchema, LoginSchema
 from app.services.auth_service import AuthService
 from app.utils.auth_dependencies import get_current_user
 from app.constants.url_prefix import AUTH_PREFIX
+from app.schemas.request.auth_schema import (
+    RegisterUserSchema,
+    LoginSchema,
+    RefreshTokenSchema      # ADD THIS
+)
 
 router = APIRouter(
     prefix=AUTH_PREFIX,   # every route here starts with /auth
@@ -58,3 +63,17 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     If token is missing or invalid, FastAPI returns 401 before reaching here.
     """
     return current_user
+
+@router.post(
+    "/refresh",
+    status_code=status.HTTP_200_OK,
+    summary="Refresh access token",
+    description="Send a valid refresh token to get a new access token."
+)
+async def refresh_token(data: RefreshTokenSchema):
+    """
+    When the access token expires (after 30 minutes),
+    the client sends the refresh token here to get a new access token
+    without making the user login again.
+    """
+    return await auth_service.refresh_access_token(data.refresh_token)

@@ -11,6 +11,17 @@ from app.exceptions.auth_exceptions import (UserAlreadyExistsException,InvalidCr
 from app.utils.user_mapper import user_to_response
 from app.constants.roles import STUDENT_ROLE
 
+from app.utils.jwt_utils import (
+    create_access_token,
+    create_refresh_token,       
+    decode_refresh_token        
+)
+from app.exceptions.auth_exceptions import (
+    UserAlreadyExistsException,
+    InvalidCredentialsException,
+    InvalidTokenException      
+)
+
 
 class AuthService:
 
@@ -55,37 +66,36 @@ class AuthService:
 
     async def login_user(self, data: LoginSchema) -> dict:
         """
-        Authenticate user and return a JWT token.
+        Authenticate user and return both access and refresh tokens.
+
+        Access token  → short lived (30 min), used for API calls
+        Refresh token → long lived (7 days), used to get new access token
         """
-
-        # look up user
         user = await self.repo.find_user_by_email(data.email)
-
-        # We give the SAME error whether email is wrong OR password is wrong.
         if not user:
             raise InvalidCredentialsException()
 
-        # check password
         if not verify_password(data.password, user["password"]):
             raise InvalidCredentialsException()
 
-        # build token payload
         token_payload = {
-            "sub": str(user["_id"]),    # subject = who owns this token
-            "role": user["role"],        # used by require_admin / require_student
+            "sub": str(user["_id"]),
+            "role": user["role"],
             "email": user["email"]
         }
 
-        # sign and return
+        # generate both tokens from same payload
         access_token = create_access_token(token_payload)
+        refresh_token = create_refresh_token(token_payload)     
 
         return {
             "access_token": access_token,
-            "token_type": "bearer",      
+            "refresh_token": refresh_token,                     
+            "token_type": "bearer",
             "user": {
                 "id": str(user["_id"]),
                 "username": user["username"],
                 "email": user["email"],
                 "role": user["role"]
-            }
         }
+    }
