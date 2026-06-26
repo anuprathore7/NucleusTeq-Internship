@@ -12,3 +12,4 @@ Each module gets its own sub-path
 Final URL example: /assessment/v1/auth/register
 """
 AUTH_PREFIX = "/auth"
+CATEGORY_PREFIX = "/categories"  
