@@ -1,38 +1,34 @@
 from fastapi import HTTPException, status
 
+from app.constants.message import (
+    CATEGORY_NOT_FOUND,
+    CATEGORY_ALREADY_EXISTS,
+    CATEGORY_INVALID_ID
+)
+
 
 class CategoryNotFoundException(HTTPException):
-    """
-    Raised when a category with the given ID does not exist in the database.
-    Example: admin tries to update a category that was already deleted.
-    """
+    """Raised when a category with the given ID does not exist."""
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found"
+            detail=CATEGORY_NOT_FOUND
         )
 
 
 class CategoryAlreadyExistsException(HTTPException):
-    """
-    Raised when admin tries to create a category
-    with a name that already exists.
-    Example: 'Python' category already exists, admin tries to create it again.
-    """
+    """Raised when a category with the same name already exists."""
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Category with this name already exists"
+            detail=CATEGORY_ALREADY_EXISTS
         )
 
 
 class CategoryInvalidIdException(HTTPException):
-    """
-    Raised when the provided category ID is not a valid MongoDB ObjectId.
-    Example: someone sends 'abc' as an ID instead of a proper ObjectId string.
-    """
+    """Raised when the provided ID is not a valid MongoDB ObjectId format."""
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid category ID format"
+            detail=CATEGORY_INVALID_ID
         )
