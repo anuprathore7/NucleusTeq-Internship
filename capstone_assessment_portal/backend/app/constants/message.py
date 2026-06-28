@@ -21,3 +21,10 @@ INSUFFICIENT_PERMISSIONS = "You do not have permission to perform this action"
 CATEGORY_NOT_FOUND = "Category not found"
 CATEGORY_ALREADY_EXISTS = "Category with this name already exists"
 CATEGORY_INVALID_ID = "Invalid category ID format"
+
+# ─── Quiz Messages ──────────────────────────────────────────────────────────────
+
+QUIZ_NOT_FOUND = "Quiz not found"
+QUIZ_ALREADY_EXISTS = "Quiz with this title already exists in this category"
+QUIZ_INVALID_ID = "Invalid quiz ID format"
+QUIZ_CATEGORY_NOT_FOUND = "Category not found. Please provide a valid category ID"

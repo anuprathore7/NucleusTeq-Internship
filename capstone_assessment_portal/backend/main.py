@@ -6,6 +6,7 @@ from app.config.database import client
 from app.constants.url_prefix import URL_PREFIX, API_VERSION
 from app.routes.auth_routes import router as auth_router
 from app.routes.category_routes import router as category_router 
+from app.routes.quiz_routes import router as quiz_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,6 +33,7 @@ app = FastAPI(
 # Register auth routes under /assessment/v1/auth
 app.include_router(auth_router,prefix=URL_PREFIX + API_VERSION ) # "/assessment" + "/v1" = "/assessment/v1"
 app.include_router(category_router, prefix=URL_PREFIX + API_VERSION)
+app.include_router(quiz_router, prefix=URL_PREFIX + API_VERSION)
 
 @app.get("/")
 async def health_check():
