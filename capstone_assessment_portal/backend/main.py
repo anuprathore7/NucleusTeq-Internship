@@ -1,41 +1,40 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 
-from app.config.database import client
+# lifespan now lives in its own file — senior's feedback addressed
+from app.config.lifespan import lifespan
 from app.constants.url_prefix import URL_PREFIX, API_VERSION
 from app.routes.auth_routes import router as auth_router
-from app.routes.category_routes import router as category_router 
+from app.routes.category_routes import router as category_router
 from app.routes.quiz_routes import router as quiz_router
+from app.routes.question_routes import router as question_router
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Startup: ping MongoDB to confirm connection is alive.
-    Shutdown: close the connection pool cleanly.
-    """
-    try:
-        await client.admin.command("ping")
-        print("MongoDB Connected Successfully")
-    except Exception as error:
-        print(f"MongoDB Connection Failed: {error}")
-
-    yield  # app runs here
-
-    client.close()
-    print("MongoDB Connection Closed")
+"""
+main.py has exactly ONE job:
+- Create the FastAPI application instance
+- Register the lifespan handler
+- Register all route modules
+"""
 
 app = FastAPI(
     title="Assessment Portal",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan       # imported from app/config/lifespan.py
 )
-# Register auth routes under /assessment/v1/auth
-app.include_router(auth_router,prefix=URL_PREFIX + API_VERSION ) # "/assessment" + "/v1" = "/assessment/v1"
+
+# ── Register all routers ──────────────────────────────────────────────
+# Base prefix for all routes: /assessment/v1
+
+app.include_router(auth_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(category_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(quiz_router, prefix=URL_PREFIX + API_VERSION)
+app.include_router(question_router, prefix=URL_PREFIX + API_VERSION)
+
 
 @app.get("/")
 async def health_check():
-    """Health check — confirms API is running."""
+    """
+    Health check endpoint.
+    Used to verify the server is running.
+    Returns 200 if everything is fine.
+    """
     return {"message": "Assessment Portal Running"}
