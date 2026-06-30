@@ -8,7 +8,9 @@ from app.schemas.request.question_schema import (
 )
 from app.schemas.response.question_response_schema import (
     QuestionResponseSchema,
-    QuestionListResponseSchema
+    QuestionListResponseSchema,
+    QuestionStudentResponseSchema,
+    QuestionStudentListResponseSchema
 )
 from app.exceptions.question_exceptions import (
     QuestionNotFoundException,
@@ -16,7 +18,7 @@ from app.exceptions.question_exceptions import (
     QuestionQuizNotFoundException,
     QuestionInvalidCorrectAnswerException
 )
-from app.utils.question_mapper import question_to_response, questions_to_response
+from app.utils.question_mapper import question_to_response, questions_to_response ,question_to_student_response, questions_to_student_response
 from app.constants.question_constants import MCQ, TRUE_FALSE, TRUE_FALSE_OPTIONS, MCQ_OPTIONS_COUNT
 
 
@@ -210,3 +212,54 @@ class QuestionService:
             "quiz_id": quiz_id,
             "total_questions": count
         }
+    
+    async def get_question_by_id_for_student(
+        self,
+        question_id: str
+    ) -> QuestionStudentResponseSchema:
+        """
+        Fetch a single question for a student.
+        Same data lookup as the admin version, but mapped
+        through the student-safe mapper so correct_answer never leaks.
+        """
+        question = await self.question_repo.find_by_id(question_id)
+
+        if not question:
+            raise QuestionNotFoundException()
+
+        return question_to_student_response(question)
+
+    async def get_questions_by_quiz_for_student(
+        self,
+        quiz_id: str
+    ) -> QuestionStudentListResponseSchema:
+        """
+        Fetch all questions in a quiz for a student.
+        Verifies the quiz exists first, same as the admin version,
+        but returns the student-safe list (no correct_answer).
+        """
+        quiz = await self.quiz_repo.find_by_id(quiz_id)
+        if not quiz:
+            raise QuestionQuizNotFoundException()
+
+        questions = await self.question_repo.find_by_quiz_id(quiz_id)
+        return questions_to_student_response(questions)
+
+    async def get_questions_by_difficulty_for_student(
+        self,
+        quiz_id: str,
+        difficulty: str
+    ) -> QuestionStudentListResponseSchema:
+        """
+        Fetch questions in a quiz filtered by difficulty, for a student.
+        Same logic as admin version, mapped through the student-safe mapper.
+        """
+        quiz = await self.quiz_repo.find_by_id(quiz_id)
+        if not quiz:
+            raise QuestionQuizNotFoundException()
+
+        questions = await self.question_repo.find_by_quiz_and_difficulty(
+            quiz_id,
+            difficulty
+        )
+        return questions_to_student_response(questions)

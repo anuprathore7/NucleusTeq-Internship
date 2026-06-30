@@ -6,10 +6,12 @@ from app.schemas.request.question_schema import (
 )
 from app.schemas.response.question_response_schema import (
     QuestionResponseSchema,
-    QuestionListResponseSchema
+    QuestionListResponseSchema,
+    QuestionStudentResponseSchema,
+    QuestionStudentListResponseSchema
 )
 from app.services.question_service import QuestionService
-from app.utils.auth_dependencies import require_admin, get_current_user
+from app.utils.auth_dependencies import require_admin, get_current_user , require_student
 from app.constants.question_constants import EASY, MEDIUM, HARD
 
 router = APIRouter(
@@ -47,7 +49,7 @@ async def create_question(
 )
 async def get_questions_by_quiz(
     quiz_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_admin)
 ):
     """
     Both admin and student can access this.
@@ -67,7 +69,7 @@ async def get_questions_by_quiz(
 async def get_questions_by_difficulty(
     quiz_id: str,
     difficulty: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_admin)
 ):
     """
     Filter questions by difficulty.
@@ -102,13 +104,73 @@ async def get_question_count(
 )
 async def get_question(
     question_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_admin)
 ):
     """
     Fetch one question by ID.
     Used by admin to view question details before editing.
     """
     return await question_service.get_question_by_id(question_id)
+
+# ─────────────────────────────────────────────────────────────────────────
+# STUDENT ROUTES — correct_answer is never exposed in any of these
+# ─────────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/student/quiz/{quiz_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=QuestionStudentListResponseSchema,
+    summary="Get all questions for a quiz (student view)",
+    description="Returns all questions in a quiz without the correct answer."
+)
+async def get_questions_by_quiz_for_student(
+    quiz_id: str,
+    current_user: dict = Depends(require_student)
+):
+    """
+    Student-safe version of get_questions_by_quiz.
+    Placed before /student/{question_id} so FastAPI does not
+    try to match 'quiz' as a question_id.
+    """
+    return await question_service.get_questions_by_quiz_for_student(quiz_id)
+
+
+@router.get(
+    "/student/quiz/{quiz_id}/difficulty/{difficulty}",
+    status_code=status.HTTP_200_OK,
+    response_model=QuestionStudentListResponseSchema,
+    summary="Get questions by difficulty (student view)",
+    description="Returns questions filtered by difficulty without the correct answer."
+)
+async def get_questions_by_difficulty_for_student(
+    quiz_id: str,
+    difficulty: str,
+    current_user: dict = Depends(require_student)
+):
+    """
+    Student-safe version of get_questions_by_difficulty.
+    """
+    return await question_service.get_questions_by_difficulty_for_student(
+        quiz_id,
+        difficulty
+    )
+
+
+@router.get(
+    "/student/{question_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=QuestionStudentResponseSchema,
+    summary="Get a single question (student view)",
+    description="Returns one question without the correct answer."
+)
+async def get_question_for_student(
+    question_id: str,
+    current_user: dict = Depends(require_student)
+):
+    """
+    Student-safe version of get_question.
+    """
+    return await question_service.get_question_by_id_for_student(question_id)
 
 
 @router.put(
