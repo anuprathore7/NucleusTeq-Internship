@@ -54,7 +54,7 @@ class QuizRepository:
         Returns None if no quiz with that ID exists.
         """
         object_id = self._to_object_id(id)
-        return await self.collection.find_one({"_id": object_id})
+        return await self.collection.find_one({"_id": object_id , "is_active": True })
 
     async def find_all(self) -> list[dict]:
         """
