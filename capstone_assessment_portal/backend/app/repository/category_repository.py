@@ -45,7 +45,10 @@ class CategoryRepository:
         Returns the document or None if not found.
         """
         object_id = self._to_object_id(id)
-        return await self.collection.find_one({"_id": object_id})
+        return await self.collection.find_one({
+        "_id": object_id,
+        "is_active": True          # ADD THIS — ignore soft-deleted docs
+    })
 
     async def find_all(self) -> list[dict]:
         """
