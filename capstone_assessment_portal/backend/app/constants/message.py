@@ -38,3 +38,14 @@ QUESTION_QUIZ_NOT_FOUND = "Quiz not found. Please provide a valid quiz ID"
 QUESTION_INVALID_OPTIONS = "MCQ questions must have exactly 4 options"
 QUESTION_INVALID_TRUE_FALSE = "True/False questions must have exactly 2 options: 'True' and 'False'"
 QUESTION_INVALID_CORRECT_ANSWER = "Correct answer must match one of the provided options"
+
+# ─── Success Messages ─────────────────────────────────────────────────────────
+
+CATEGORY_DELETED = "Category deleted successfully"
+QUIZ_DELETED = "Quiz deleted successfully"
+QUESTION_DELETED = "Question deleted successfully"
+
+# ─── Delete Dependency Messages ───────────────────────────────────────────────
+
+CATEGORY_HAS_QUIZZES = "Cannot delete category. Please delete all linked quizzes first."
+QUIZ_HAS_QUESTIONS = "Cannot delete quiz. Please delete all linked questions first."
