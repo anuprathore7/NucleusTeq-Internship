@@ -29,7 +29,8 @@ class QuestionRepository:
         Fetch a single question by its MongoDB _id.
         """
         object_id = self._to_object_id(id)
-        return await self.collection.find_one({"_id": object_id})
+        result = await self.collection.find_one({"_id": object_id})
+        return result
 
     async def find_by_text_and_quiz(
         self,
@@ -39,7 +40,7 @@ class QuestionRepository:
         """
         Check if a question with the same text already exists in the same quiz.
         """
-        return await self.collection.find_one({
+        result = await self.collection.find_one({
             # $regex pattern:
             # ^ means start of string
             # $ means end of string
@@ -52,10 +53,11 @@ class QuestionRepository:
             "quiz_id": quiz_id,         # same quiz check
             "is_active": True           # only check active questions
         })
+        return result
 
     async def find_by_quiz_id(self, quiz_id: str) -> list[dict]:
         """
-        Fetch all active questions belonging to a specific quiz.    
+        Fetch all active questions belonging to a specific quiz.
         """
         cursor = self.collection.find({
             "quiz_id": quiz_id,
@@ -63,7 +65,8 @@ class QuestionRepository:
         }).sort("created_at", 1)    # 1 = ascending (oldest first)
 
         # to_list(None) = fetch ALL results with no limit
-        return await cursor.to_list(None)
+        result = await cursor.to_list(None)
+        return result
 
     async def find_by_quiz_and_difficulty(
         self,
@@ -79,7 +82,8 @@ class QuestionRepository:
             "is_active": True
         }).sort("created_at", 1)
 
-        return await cursor.to_list(None)
+        result = await cursor.to_list(None)
+        return result
 
     async def find_all(self) -> list[dict]:
         """
@@ -89,16 +93,18 @@ class QuestionRepository:
             {"is_active": True}
         ).sort("created_at", -1)    # -1 = descending (newest first)
 
-        return await cursor.to_list(None)
+        result = await cursor.to_list(None)
+        return result
 
     async def create(self, question_data: dict) -> dict:
         """
         Insert a new question document into the questions collection.
         """
-        result = await self.collection.insert_one(question_data)
+        inserted = await self.collection.insert_one(question_data)
 
         # fetch and return the complete saved document
-        return await self.collection.find_one({"_id": result.inserted_id})
+        result = await self.collection.find_one({"_id": inserted.inserted_id})
+        return result
 
     async def update(self, id: str, update_data: dict) -> dict | None:
         """
@@ -114,34 +120,27 @@ class QuestionRepository:
         """
         object_id = self._to_object_id(id)
 
-        return await self.collection.find_one_and_update(
+        result = await self.collection.find_one_and_update(
             {"_id": object_id},
             {"$set": update_data},
             return_document=True
         )
+        return result
 
-    async def delete(self, id: str) -> dict | None:
+    async def delete(self, id: str) -> None:
         """
-        Soft delete a question by setting is_active = False.
+        Hard delete a question — permanently removes it from MongoDB.
+        No recovery possible after this operation.
         """
         object_id = self._to_object_id(id)
-
-        return await self.collection.find_one_and_update(
-            {"_id": object_id},
-            {
-                "$set": {
-                    "is_active": False,
-                    "updated_at": datetime.now(timezone.utc)
-                }
-            },
-            return_document=True
-        )
+        await self.collection.delete_one({"_id": object_id})
 
     async def count_by_quiz(self, quiz_id: str) -> int:
         """
         Count total active questions in a quiz.
         """
-        return await self.collection.count_documents({
+        result = await self.collection.count_documents({
             "quiz_id": quiz_id,
             "is_active": True
         })
+        return result
