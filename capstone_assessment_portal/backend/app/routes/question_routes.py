@@ -37,7 +37,8 @@ async def create_question(
     Pydantic validates the body AND runs model_validator
     to check cross-field rules before this function runs.
     """
-    return await question_service.create_question(data)
+    result = await question_service.create_question(data)
+    return result
 
 
 @router.get(
@@ -56,7 +57,8 @@ async def get_questions_by_quiz(
     Admin uses it to manage questions in a quiz.
     Student uses it when starting a quiz attempt.
     """
-    return await question_service.get_questions_by_quiz(quiz_id)
+    result = await question_service.get_questions_by_quiz(quiz_id)
+    return result
 
 
 @router.get(
@@ -75,7 +77,8 @@ async def get_questions_by_difficulty(
     Filter questions by difficulty.
     Useful for admin to review question distribution.
     """
-    return await question_service.get_questions_by_difficulty(quiz_id, difficulty)
+    result = await question_service.get_questions_by_difficulty(quiz_id, difficulty)
+    return result
 
 
 @router.get(
@@ -92,7 +95,8 @@ async def get_question_count(
     Admin uses this to check how many questions a quiz has.
     Helps ensure quiz has enough questions before publishing.
     """
-    return await question_service.get_question_count_by_quiz(quiz_id)
+    result = await question_service.get_question_count_by_quiz(quiz_id)
+    return result
 
 
 @router.get(
@@ -110,7 +114,8 @@ async def get_question(
     Fetch one question by ID.
     Used by admin to view question details before editing.
     """
-    return await question_service.get_question_by_id(question_id)
+    result = await question_service.get_question_by_id(question_id)
+    return result
 
 # ─────────────────────────────────────────────────────────────────────────
 # STUDENT ROUTES — correct_answer is never exposed in any of these
@@ -132,7 +137,8 @@ async def get_questions_by_quiz_for_student(
     Placed before /student/{question_id} so FastAPI does not
     try to match 'quiz' as a question_id.
     """
-    return await question_service.get_questions_by_quiz_for_student(quiz_id)
+    result = await question_service.get_questions_by_quiz_for_student(quiz_id)
+    return result
 
 
 @router.get(
@@ -150,10 +156,11 @@ async def get_questions_by_difficulty_for_student(
     """
     Student-safe version of get_questions_by_difficulty.
     """
-    return await question_service.get_questions_by_difficulty_for_student(
+    result = await question_service.get_questions_by_difficulty_for_student(
         quiz_id,
         difficulty
     )
+    return result
 
 
 @router.get(
@@ -170,7 +177,8 @@ async def get_question_for_student(
     """
     Student-safe version of get_question.
     """
-    return await question_service.get_question_by_id_for_student(question_id)
+    result = await question_service.get_question_by_id_for_student(question_id)
+    return result
 
 
 @router.put(
@@ -190,21 +198,22 @@ async def update_question(
     difficulty, tags, or marks. All fields are optional.
     Only provided fields are updated.
     """
-    return await question_service.update_question(question_id, data)
+    result = await question_service.update_question(question_id, data)
+    return result
 
 
 @router.delete(
     "/{question_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete a question",
-    description="Admin only. Soft deletes a question by marking it inactive."
+    description="Admin only. Hard deletes a question "
 )
 async def delete_question(
     question_id: str,
     current_user: dict = Depends(require_admin)
 ):
     """
-    Soft delete — question marked inactive, not permanently removed.
-    Student attempt history referencing this question stays intact.
+    Hard delete — question is permanently removed.
     """
-    return await question_service.delete_question(question_id)
+    result = await question_service.delete_question(question_id)
+    return result
