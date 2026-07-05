@@ -5,15 +5,6 @@ import pytest
 class TestQuizAPI:
     """
     Integration tests for the Quiz API.
-
-    QUIZ-001 → Create quiz with valid payload → 201 Created
-    QUIZ-002 → Create quiz with invalid category id → error
-    QUIZ-003 → Get quiz list → 200 with list
-    QUIZ-004 → Update quiz with valid id → 200 Updated
-    QUIZ-005 → Delete quiz with valid id → 200 Deleted
-    QUIZ-006 → Fetch quiz details with valid id → 200 returned
-    QUIZ-007 → Fetch quiz with invalid id → 404 Not Found
-    
     """
 
     # shared state across test methods in this class
