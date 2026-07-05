@@ -1,33 +1,36 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.config.database import client
+import os
 
-"""
-Manages the FastAPI application lifecycle.
-"""
+from app.config.database import client
+from app.config.logger import setup_logging, get_logger
+
+logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Application startup and shutdown handler.
+    Skips MongoDB ping during testing to avoid event loop conflicts.
+    Motor connects lazily on first query — no manual ping needed in tests.
     """
+    setup_logging()
 
-    # ── STARTUP ──────────────────────────────────────────────────
-    try:
-        # ping MongoDB to verify connection is working
-        # client.admin.command("ping") is the standard MongoDB health check
-        await client.admin.command("ping")
-        print("MongoDB Connected Successfully")
+    # PYTEST_CURRENT_TEST is set automatically by pytest on every test
+    is_testing = "PYTEST_CURRENT_TEST" in os.environ
 
-    except Exception as error:
-        # log the error but don't crash
-        # server still starts — MongoDB might recover
-        print(f"MongoDB Connection Failed: {error}")
+    if is_testing:
+        logger.info("Test environment detected — skipping MongoDB ping")
+    else:
+        try:
+            await client.admin.command("ping")
+            logger.info("MongoDB connected successfully")
+        except Exception as error:
+            logger.error(f"MongoDB connection failed: {error}")
 
-    # app runs here — handles all incoming requests
     yield
 
-    # ── SHUTDOWN ─────────────────────────────────────────────────
-    # close all connections in the pool when server stops
-    client.close()
-    print("MongoDB Connection Closed")
+    if not is_testing:
+        client.close()
+        logger.info("MongoDB connection closed — server shutting down")
