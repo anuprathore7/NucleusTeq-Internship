@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.config.logger import get_logger
 from app.repository.question_repository import QuestionRepository
 from app.repository.quiz_repository import QuizRepository
 from app.schemas.request.question_schema import (
@@ -18,18 +19,27 @@ from app.exceptions.question_exceptions import (
     QuestionQuizNotFoundException,
     QuestionInvalidCorrectAnswerException
 )
-from app.utils.question_mapper import question_to_response, questions_to_response ,question_to_student_response, questions_to_student_response
-from app.constants.question_constants import MCQ, TRUE_FALSE, TRUE_FALSE_OPTIONS, MCQ_OPTIONS_COUNT
+from app.utils.question_mapper import (
+    question_to_response,
+    questions_to_response,
+    question_to_student_response,
+    questions_to_student_response
+)
+from app.constants.question_constants import MCQ_OPTIONS_COUNT
+from app.schemas.response.message_response_schema import MessageResponseSchema
+from app.constants.message import QUESTION_DELETED
+
+logger = get_logger(__name__)
 
 
 class QuestionService:
     """
     Contains ALL business logic for question operations.
+    Uses QuestionRepository and QuizRepository.
     """
 
     def __init__(self):
         self.question_repo = QuestionRepository()
-        # needed to validate quiz_id exists before creating/updating questions
         self.quiz_repo = QuizRepository()
 
     async def create_question(
@@ -38,29 +48,27 @@ class QuestionService:
     ) -> QuestionResponseSchema:
         """
         Add a new question to a quiz.
+        Validates quiz exists, no duplicate text, and correct_answer is in options.
         """
+        logger.info(f"Create question attempt for quiz: {data.quiz_id}")
 
-        # verify quiz exists
-        # We cannot add a question to a quiz that doesn't exist
         quiz = await self.quiz_repo.find_by_id(data.quiz_id)
         if not quiz:
+            logger.warning(f"Create question failed — quiz not found: {data.quiz_id}")
             raise QuestionQuizNotFoundException()
 
-        # check for duplicate question text in same quiz
-        # Same question cannot appear twice in the same quiz
         existing = await self.question_repo.find_by_text_and_quiz(
             data.question_text,
             data.quiz_id
         )
         if existing:
+            logger.warning(f"Create question failed — duplicate text in quiz: {data.quiz_id}")
             raise QuestionAlreadyExistsException()
 
-        # verify correct_answer matches one of the options
-        # Pydantic already validated this, but service-level check adds safety
         if data.correct_answer not in data.options:
+            logger.warning(f"Create question failed — correct_answer not in options")
             raise QuestionInvalidCorrectAnswerException()
 
-        # build the MongoDB document
         new_question = {
             **data.model_dump(),
             "is_active": True,
@@ -68,30 +76,31 @@ class QuestionService:
             "updated_at": datetime.now(timezone.utc)
         }
 
-        # save to database
         saved_question = await self.question_repo.create(new_question)
+        logger.info(f"Question created successfully in quiz: {data.quiz_id}")
 
-        # return clean response
-        return question_to_response(saved_question)
+        result = question_to_response(saved_question)
+        return result
 
     async def get_questions_by_quiz(
         self,
         quiz_id: str
     ) -> QuestionListResponseSchema:
         """
-        Get all questions belonging to a specific quiz.
+        Get all active questions for a quiz — admin view with correct_answer.
         """
+        logger.info(f"Admin fetching questions for quiz: {quiz_id}")
 
-        # verify quiz exists
         quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not quiz:
+            logger.warning(f"Get questions failed — quiz not found: {quiz_id}")
             raise QuestionQuizNotFoundException()
 
-        # fetch questions
         questions = await self.question_repo.find_by_quiz_id(quiz_id)
+        logger.info(f"Returned {len(questions)} questions for quiz: {quiz_id}")
 
-        # return structured response
-        return questions_to_response(questions)
+        result = questions_to_response(questions)
+        return result
 
     async def get_questions_by_difficulty(
         self,
@@ -99,36 +108,42 @@ class QuestionService:
         difficulty: str
     ) -> QuestionListResponseSchema:
         """
-        Get questions from a quiz filtered by difficulty level.
+        Get questions filtered by difficulty — admin view with correct_answer.
         """
+        logger.info(f"Admin fetching {difficulty} questions for quiz: {quiz_id}")
 
-        # verify quiz exists
         quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not quiz:
+            logger.warning(f"Get by difficulty failed — quiz not found: {quiz_id}")
             raise QuestionQuizNotFoundException()
 
-        # fetch filtered questions
         questions = await self.question_repo.find_by_quiz_and_difficulty(
             quiz_id,
             difficulty
         )
+        logger.info(f"Returned {len(questions)} {difficulty} questions for quiz: {quiz_id}")
 
-        # return structured response
-        return questions_to_response(questions)
+        result = questions_to_response(questions)
+        return result
 
     async def get_question_by_id(
         self,
         question_id: str
     ) -> QuestionResponseSchema:
         """
-        Fetch a single question by its ID.
+        Fetch a single question by ID — admin view with correct_answer.
         """
-        question = await self.question_repo.find_by_id(question_id)
+        logger.info(f"Admin fetching question: {question_id}")
 
+        question = await self.question_repo.find_by_id(question_id)
         if not question:
+            logger.warning(f"Question not found: {question_id}")
             raise QuestionNotFoundException()
 
-        return question_to_response(question)
+        logger.info(f"Question found: {question_id}")
+
+        result = question_to_response(question)
+        return result
 
     async def update_question(
         self,
@@ -137,113 +152,116 @@ class QuestionService:
     ) -> QuestionResponseSchema:
         """
         Update an existing question.
+        Validates correct_answer against final options and checks for duplicate text.
         """
+        logger.info(f"Update question attempt for id: {question_id}")
 
-        # confirm question exists
         existing_question = await self.question_repo.find_by_id(question_id)
         if not existing_question:
+            logger.warning(f"Update failed — question not found: {question_id}")
             raise QuestionNotFoundException()
 
-        # determine what the final options will be after update
-        # If new options are provided, use them
-        # If not, keep the existing options from DB
-        # We need this to validate correct_answer against the right options
         final_options = data.options if data.options is not None \
             else existing_question["options"]
 
-        # if correct_answer is being updated, validate it
-        # against the final options (new or existing)
         if data.correct_answer is not None:
             if data.correct_answer not in final_options:
+                logger.warning(f"Update failed — correct_answer not in options")
                 raise QuestionInvalidCorrectAnswerException()
 
-        # if question text is changing, check for duplicates
         if data.question_text:
             duplicate = await self.question_repo.find_by_text_and_quiz(
                 data.question_text,
-                existing_question["quiz_id"]  # same quiz as the existing question
+                existing_question["quiz_id"]
             )
-            # make sure the duplicate found is not the same question we are updating
             if duplicate and str(duplicate["_id"]) != question_id:
+                logger.warning(f"Update failed — duplicate question text in quiz")
                 raise QuestionAlreadyExistsException()
 
-        # build update dict with only provided fields
-        # exclude_none=True skips fields that are None
-        # so we only update what was actually sent
         update_data = data.model_dump(exclude_none=True)
         update_data["updated_at"] = datetime.now(timezone.utc)
 
-        # save and return
         updated_question = await self.question_repo.update(question_id, update_data)
-        return question_to_response(updated_question)
+        logger.info(f"Question updated successfully: {question_id}")
 
-    async def delete_question(self, question_id: str) -> dict:
-        """
-        Soft delete a question.
-        """
+        result = question_to_response(updated_question)
+        return result
 
-        # confirm it exists
+    async def delete_question(self, question_id: str) -> MessageResponseSchema:
+        """
+        Soft delete a question by marking it inactive.
+        """
+        logger.info(f"Delete question attempt for id: {question_id}")
+
         existing_question = await self.question_repo.find_by_id(question_id)
         if not existing_question:
+            logger.warning(f"Delete failed — question not found: {question_id}")
             raise QuestionNotFoundException()
 
-        # soft delete
         await self.question_repo.delete(question_id)
+        logger.info(f"Question deleted successfully: {question_id}")
 
-        # return confirmation with the question text so admin
-        # knows exactly which question was deleted
-        return {
-            "message": f"Question deleted successfully"
-        }
+        result = MessageResponseSchema(message=QUESTION_DELETED)
+        return result
 
     async def get_question_count_by_quiz(self, quiz_id: str) -> dict:
         """
         Get total number of active questions in a quiz.
         """
+        logger.info(f"Getting question count for quiz: {quiz_id}")
 
-        # verify quiz exists first
         quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not quiz:
+            logger.warning(f"Count failed — quiz not found: {quiz_id}")
             raise QuestionQuizNotFoundException()
 
         count = await self.question_repo.count_by_quiz(quiz_id)
+        logger.info(f"Quiz {quiz_id} has {count} active questions")
 
-        return {
+        result = {
             "quiz_id": quiz_id,
             "total_questions": count
         }
-    
+        return result
+
     async def get_question_by_id_for_student(
         self,
         question_id: str
     ) -> QuestionStudentResponseSchema:
         """
-        Fetch a single question for a student.
-        Same data lookup as the admin version, but mapped
-        through the student-safe mapper so correct_answer never leaks.
+        Fetch a single question for student — correct_answer never included.
         """
-        question = await self.question_repo.find_by_id(question_id)
+        logger.info(f"Student fetching question: {question_id}")
 
+        question = await self.question_repo.find_by_id(question_id)
         if not question:
+            logger.warning(f"Question not found for student: {question_id}")
             raise QuestionNotFoundException()
 
-        return question_to_student_response(question)
+        logger.info(f"Student question found: {question_id}")
+
+        result = question_to_student_response(question)
+        return result
 
     async def get_questions_by_quiz_for_student(
         self,
         quiz_id: str
     ) -> QuestionStudentListResponseSchema:
         """
-        Fetch all questions in a quiz for a student.
-        Verifies the quiz exists first, same as the admin version,
-        but returns the student-safe list (no correct_answer).
+        Fetch all questions for a quiz — student safe, no correct_answer.
         """
+        logger.info(f"Student fetching questions for quiz: {quiz_id}")
+
         quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not quiz:
+            logger.warning(f"Student get questions failed — quiz not found: {quiz_id}")
             raise QuestionQuizNotFoundException()
 
         questions = await self.question_repo.find_by_quiz_id(quiz_id)
-        return questions_to_student_response(questions)
+        logger.info(f"Returned {len(questions)} questions (student view) for quiz: {quiz_id}")
+
+        result = questions_to_student_response(questions)
+        return result
 
     async def get_questions_by_difficulty_for_student(
         self,
@@ -251,15 +269,23 @@ class QuestionService:
         difficulty: str
     ) -> QuestionStudentListResponseSchema:
         """
-        Fetch questions in a quiz filtered by difficulty, for a student.
-        Same logic as admin version, mapped through the student-safe mapper.
+        Fetch questions by difficulty for student — no correct_answer.
         """
+        logger.info(f"Student fetching {difficulty} questions for quiz: {quiz_id}")
+
         quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not quiz:
+            logger.warning(f"Student difficulty filter failed — quiz not found: {quiz_id}")
             raise QuestionQuizNotFoundException()
 
         questions = await self.question_repo.find_by_quiz_and_difficulty(
             quiz_id,
             difficulty
         )
-        return questions_to_student_response(questions)
+        logger.info(
+            f"Returned {len(questions)} {difficulty} questions "
+            f"(student view) for quiz: {quiz_id}"
+        )
+
+        result = questions_to_student_response(questions)
+        return result

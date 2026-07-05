@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.config.logger import get_logger
 from app.repository.category_repository import CategoryRepository
 from app.schemas.request.category_schema import (
     CreateCategorySchema,
@@ -11,19 +12,22 @@ from app.schemas.response.category_response_schema import (
 )
 from app.exceptions.category_exceptions import (
     CategoryNotFoundException,
-    CategoryAlreadyExistsException
+    CategoryAlreadyExistsException,
+    CategoryHasQuizzesException 
 )
 from app.utils.category_mapper import (
     category_to_response,
     categories_to_response
 )
+from app.schemas.response.message_response_schema import MessageResponseSchema
+from app.constants.message import CATEGORY_DELETED
+
+logger = get_logger(__name__)
 
 
 class CategoryService:
     """
     Contains all business logic for category operations.
-    Sits between routes (HTTP layer) and repository (DB layer).
-    Routes call services. Services call repositories.
     """
 
     def __init__(self):
@@ -34,47 +38,58 @@ class CategoryService:
         data: CreateCategorySchema
     ) -> CategoryResponseSchema:
         """
-        Create a new category.
+        Create a new category after checking for duplicate names.
         """
+        logger.info(f"Create category attempt: {data.name}")
 
-        # duplicate name check (case-insensitive)
         existing = await self.repo.find_by_name(data.name)
         if existing:
+            logger.warning(f"Create category failed — already exists: {data.name}")
             raise CategoryAlreadyExistsException()
 
-        # build the MongoDB document
         new_category = {
             **data.model_dump(),
             "is_active": True,
             "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc)    # same as created on first save
+            "updated_at": datetime.now(timezone.utc)
         }
 
-        # save to DB
         saved = await self.repo.create(new_category)
+        logger.info(f"Category created successfully: {data.name}")
 
-        # convert to response schema and return
-        return category_to_response(saved)
+        result = category_to_response(saved)
+        return result
 
     async def get_all_categories(self) -> CategoryListResponseSchema:
         """
-        Fetch all active categories.
-        Available to any logged in user — both admin and student.
+        Fetch all active categories for any logged in user.
         """
+        logger.info("Fetching all active categories")
+
         categories = await self.repo.find_all()
-        return categories_to_response(categories)
-    
+        logger.info(f"Returned {len(categories)} categories")
+
+        result = categories_to_response(categories)
+        return result
+
     async def get_a_category(
-            self ,
-            category_id : str
-            ) -> CategoryResponseSchema:
+        self,
+        category_id: str
+    ) -> CategoryResponseSchema:
         """
-        Fetch one category for logged in user 
+        Fetch a single category by its ID.
         """
+        logger.info(f"Fetching category by id: {category_id}")
+
         existing = await self.repo.find_by_id(category_id)
         if not existing:
+            logger.warning(f"Category not found: {category_id}")
             raise CategoryNotFoundException()
-        return category_to_response(existing)
+
+        logger.info(f"Category found: {existing['name']}")
+
+        result = category_to_response(existing)
+        return result
 
     async def update_category(
         self,
@@ -82,44 +97,51 @@ class CategoryService:
         data: UpdateCategorySchema
     ) -> CategoryResponseSchema:
         """
-        Update an existing category.
+        Update an existing category's name or description.
         """
+        logger.info(f"Update category attempt for id: {category_id}")
 
-        #  confirm category exists
         existing = await self.repo.find_by_id(category_id)
         if not existing:
+            logger.warning(f"Update failed — category not found: {category_id}")
             raise CategoryNotFoundException()
 
-        # if name is being changed, check it's not already taken
         if data.name and data.name.lower() != existing["name"].lower():
             name_conflict = await self.repo.find_by_name(data.name)
             if name_conflict:
+                logger.warning(f"Update failed — name already exists: {data.name}")
                 raise CategoryAlreadyExistsException()
 
-        # build update dict with only the fields that were provided
-        # exclude_none=True means fields the admin didn't send won't be included
-        # so we don't accidentally overwrite existing data with None
         update_data = data.model_dump(exclude_none=True)
-
-        # always update the updated_at timestamp
         update_data["updated_at"] = datetime.now(timezone.utc)
 
-        # save and return
         updated = await self.repo.update(category_id, update_data)
-        return category_to_response(updated)
+        logger.info(f"Category updated successfully: {category_id}")
 
-    async def delete_category(self, category_id: str) -> dict:
-        """
-        Soft delete a category.
-        """
+        result = category_to_response(updated)
+        return result
 
-        # Step 1 — confirm it exists before trying to delete
+    async def delete_category(self, category_id: str) -> MessageResponseSchema:
+        """
+        Hard delete a category after verifying no quizzes are linked to it.
+        """
+        logger.info(f"Delete category attempt for id: {category_id}")
+
         existing = await self.repo.find_by_id(category_id)
         if not existing:
+            logger.warning(f"Delete failed — category not found: {category_id}")
             raise CategoryNotFoundException()
 
-        # soft delete (sets is_active = False)
-        await self.repo.delete(category_id)
+        quiz_count = await self.repo.count_quizzes_by_category(category_id)
+        if quiz_count > 0:
+            logger.warning(
+                f"Delete failed — category {category_id} "
+                f"has {quiz_count} linked quizzes"
+            )
+            raise CategoryHasQuizzesException()
 
-        #  return a confirmation message
-        return {"message": f"Category '{existing['name']}' deleted successfully"}
+        await self.repo.delete(category_id)
+        logger.info(f"Category hard deleted successfully: {existing['name']}")
+
+        result = MessageResponseSchema(message=CATEGORY_DELETED)
+        return result

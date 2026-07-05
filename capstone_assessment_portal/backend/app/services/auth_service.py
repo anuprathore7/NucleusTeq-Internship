@@ -1,81 +1,78 @@
-# Service layer = all business logic lives here.
-# Routes are thin (just HTTP in/out).
-
 from datetime import datetime, timezone
 
+from app.config.logger import get_logger
 from app.repository.auth_repository import AuthRepository
 from app.schemas.request.auth_schema import RegisterUserSchema, LoginSchema
 from app.utils.password_utils import hash_password, verify_password
-from app.utils.jwt_utils import create_access_token
-from app.exceptions.auth_exceptions import (UserAlreadyExistsException,InvalidCredentialsException)
-from app.utils.user_mapper import user_to_response
-from app.constants.roles import STUDENT_ROLE
-
 from app.utils.jwt_utils import (
     create_access_token,
-    create_refresh_token,       
-    decode_refresh_token        
+    create_refresh_token,
+    decode_refresh_token
 )
+from app.utils.user_mapper import user_to_response
+from app.constants.roles import STUDENT_ROLE
 from app.exceptions.auth_exceptions import (
     UserAlreadyExistsException,
     InvalidCredentialsException,
-    InvalidTokenException      
+    InvalidTokenException,
+    UserNotFoundException
 )
+
+logger = get_logger(__name__)
 
 
 class AuthService:
+    """
+    Contains all business logic for authentication operations.
+    """
 
     def __init__(self):
-        # Service owns a repository instance — it never touches DB directly
         self.repo = AuthRepository()
 
     async def register_user(self, data: RegisterUserSchema) -> dict:
         """
-        Register a new user account.
-
-        Check email not already taken
-        Check username not already taken
-        
+        Register a new user account as a student.
+        Checks for duplicate email and username before saving.
         """
+        logger.info(f"Registration attempt for email: {data.email}")
 
-        # duplicate email check
         if await self.repo.find_user_by_email(data.email):
+            logger.warning(f"Registration failed — email already exists: {data.email}")
             raise UserAlreadyExistsException()
 
-        # duplicate username check
         if await self.repo.find_user_by_username(data.username):
+            logger.warning(f"Registration failed — username already exists: {data.username}")
             raise UserAlreadyExistsException()
 
-        # never store plain text passwords
         hashed_pw = hash_password(data.password)
 
-        # build the MongoDB document
         new_user = {
             **data.model_dump(),
             "password": hashed_pw,
             "role": STUDENT_ROLE,
             "is_active": True,
-            "created_at": datetime.now(timezone.utc)  # always store UTC time
+            "created_at": datetime.now(timezone.utc)
         }
 
-        # persist to database
         saved_user = await self.repo.create_user(new_user)
+        logger.info(f"User registered successfully with email: {data.email}")
 
-        # used a mapper function and return only safe fields without password
-        return user_to_response(saved_user)
+        result = user_to_response(saved_user)
+        return result
 
     async def login_user(self, data: LoginSchema) -> dict:
         """
         Authenticate user and return both access and refresh tokens.
-
-        Access token  → short lived (30 min), used for API calls
-        Refresh token → long lived (7 days), used to get new access token
         """
+        logger.info(f"Login attempt for email: {data.email}")
+
         user = await self.repo.find_user_by_email(data.email)
         if not user:
-            raise InvalidCredentialsException()
+            logger.warning(f"Login failed — email not found: {data.email}")
+            raise UserNotFoundException()
 
         if not verify_password(data.password, user["password"]):
+            logger.warning(f"Login failed — invalid password for email: {data.email}")
             raise InvalidCredentialsException()
 
         token_payload = {
@@ -84,18 +81,53 @@ class AuthService:
             "email": user["email"]
         }
 
-        # generate both tokens from same payload
         access_token = create_access_token(token_payload)
-        refresh_token = create_refresh_token(token_payload)     
+        refresh_token = create_refresh_token(token_payload)
 
-        return {
+        logger.info(f"Login successful for email: {data.email} | role: {user['role']}")
+
+        result = {
             "access_token": access_token,
-            "refresh_token": refresh_token,                     
+            "refresh_token": refresh_token,
             "token_type": "bearer",
             "user": {
                 "id": str(user["_id"]),
                 "username": user["username"],
                 "email": user["email"],
                 "role": user["role"]
+            }
         }
-    }
+        return result
+
+    async def refresh_access_token(self, refresh_token: str) -> dict:
+        """
+        Generate a new access token using a valid refresh token.
+        """
+        logger.info("Refresh token request received")
+
+        payload = decode_refresh_token(refresh_token)
+
+        user_id = payload.get("sub")
+        if not user_id:
+            logger.warning("Refresh failed — sub missing from token payload")
+            raise InvalidTokenException()
+
+        user = await self.repo.find_user_by_id(user_id)
+        if not user:
+            logger.warning(f"Refresh failed — user not found for id: {user_id}")
+            raise InvalidTokenException()
+
+        token_payload = {
+            "sub": str(user["_id"]),
+            "role": user["role"],
+            "email": user["email"]
+        }
+
+        new_access_token = create_access_token(token_payload)
+        logger.info(f"Access token refreshed for email: {user['email']}")
+
+        result = {
+            "access_token": new_access_token,
+            "token_type": "bearer"
+        }
+        return result
