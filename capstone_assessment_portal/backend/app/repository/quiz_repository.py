@@ -42,8 +42,7 @@ class QuizRepository:
         """
         result = await self.collection.find_one({
             "title": {"$regex": f"^{title}$", "$options": "i"},
-            "category_id": category_id,     # same category check
-            "is_active": True               # only check active quizzes
+            "category_id": category_id,     # same category check        
         })
         return result
 
@@ -56,8 +55,7 @@ class QuizRepository:
         """
         object_id = self._to_object_id(id)
         result = await self.collection.find_one({
-            "_id": object_id,
-            "is_active": True
+            "_id": object_id
         })
         return result
 
@@ -73,9 +71,7 @@ class QuizRepository:
 
         to_list(None) — None means fetch ALL results with no limit.
         """
-        cursor = self.collection.find(
-            {"is_active": True}
-        ).sort("created_at", -1)
+        cursor = self.collection.find({}).sort("created_at", -1)
 
         result = await cursor.to_list(None)
         return result
@@ -91,8 +87,7 @@ class QuizRepository:
         Example: fetch all quizzes under "Python Programming" category
         """
         cursor = self.collection.find({
-            "category_id": category_id,
-            "is_active": True
+            "category_id": category_id
         }).sort("created_at", -1)
 
         result = await cursor.to_list(None)

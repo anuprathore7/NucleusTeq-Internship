@@ -47,8 +47,7 @@ class CategoryRepository:
         """
         object_id = self._to_object_id(id)
         result = await self.collection.find_one({
-            "_id": object_id,
-            "is_active": True          # ignore soft-deleted docs
+            "_id": object_id         # ignore soft-deleted docs
         })
         return result
 
@@ -58,9 +57,7 @@ class CategoryRepository:
         We filter by is_active=True so soft-deleted categories
         don't appear in the list.
         """
-        cursor = self.collection.find(
-            {"is_active": True}             # only active categories
-        ).sort("created_at", -1)            # -1 = descending (newest first)
+        cursor = self.collection.find({}).sort("created_at", -1)            # -1 = descending (newest first)
 
         # cursor is lazy — it doesn't fetch data until we iterate
         # to_list(None) fetches all results at once

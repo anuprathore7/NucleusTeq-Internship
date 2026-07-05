@@ -50,8 +50,7 @@ class QuestionRepository:
                 "$regex": f"^{question_text}$",
                 "$options": "i"
             },
-            "quiz_id": quiz_id,         # same quiz check
-            "is_active": True           # only check active questions
+            "quiz_id": quiz_id
         })
         return result
 
@@ -60,8 +59,7 @@ class QuestionRepository:
         Fetch all active questions belonging to a specific quiz.
         """
         cursor = self.collection.find({
-            "quiz_id": quiz_id,
-            "is_active": True
+            "quiz_id": quiz_id
         }).sort("created_at", 1)    # 1 = ascending (oldest first)
 
         # to_list(None) = fetch ALL results with no limit
@@ -78,8 +76,7 @@ class QuestionRepository:
         """
         cursor = self.collection.find({
             "quiz_id": quiz_id,
-            "difficulty": difficulty,
-            "is_active": True
+            "difficulty": difficulty
         }).sort("created_at", 1)
 
         result = await cursor.to_list(None)
@@ -89,9 +86,7 @@ class QuestionRepository:
         """
         Fetch ALL active questions across all quizzes.
         """
-        cursor = self.collection.find(
-            {"is_active": True}
-        ).sort("created_at", -1)    # -1 = descending (newest first)
+        cursor = self.collection.find({}).sort("created_at", -1)    # -1 = descending (newest first)
 
         result = await cursor.to_list(None)
         return result
@@ -140,7 +135,6 @@ class QuestionRepository:
         Count total active questions in a quiz.
         """
         result = await self.collection.count_documents({
-            "quiz_id": quiz_id,
-            "is_active": True
+            "quiz_id": quiz_id
         })
         return result
