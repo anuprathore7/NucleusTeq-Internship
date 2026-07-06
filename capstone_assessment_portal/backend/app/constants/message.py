@@ -65,3 +65,7 @@ ATTEMPT_MAX_REACHED = "You have reached the maximum number of attempts for this 
 ATTEMPT_ANSWER_SAVED = "Answer saved successfully"
 ATTEMPT_AUTO_SUBMITTED = "Time expired. Quiz has been auto submitted"
 ATTEMPT_EXPIRED = "Quiz time has expired"
+
+# ── Result Messages ───────────────────────────────────────────────────────────
+RESULT_NOT_FOUND = "Result not found for this attempt"
+RESULT_ATTEMPT_NOT_SUBMITTED = "Quiz has not been submitted yet"
