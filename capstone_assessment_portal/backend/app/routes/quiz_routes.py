@@ -31,12 +31,9 @@ async def create_quiz(
     """
     Admin creates a quiz by providing title, description,
     category_id, time_limit and pass_percentage.
-
-    require_admin runs BEFORE this function.
-    If the user is not admin, 403 is returned immediately.
-    Pydantic validates the request body automatically.
     """
-    return await quiz_service.create_quiz(data)
+    result = await quiz_service.create_quiz(data)
+    return result
 
 
 @router.get(
@@ -53,7 +50,8 @@ async def get_all_quizzes(
     Returns all active quizzes with total count.
     Students use this to browse available quizzes.
     """
-    return await quiz_service.get_all_quizzes()
+    result = await quiz_service.get_all_quizzes()
+    return result
 
 
 @router.get(
@@ -75,7 +73,8 @@ async def get_quizzes_by_category(
     If we put /{quiz_id} first, FastAPI might try to match
     'category' as a quiz_id — always put specific paths before dynamic ones.
     """
-    return await quiz_service.get_quizzes_by_category(category_id)
+    result = await quiz_service.get_quizzes_by_category(category_id)
+    return result
 
 
 @router.get(
@@ -94,7 +93,8 @@ async def get_quiz(
     Used when student clicks on a quiz to see its details.
     Also used by admin to view quiz before editing.
     """
-    return await quiz_service.get_quiz_by_id(quiz_id)
+    result = await quiz_service.get_quiz_by_id(quiz_id)
+    return result
 
 
 @router.put(
@@ -113,21 +113,23 @@ async def update_quiz(
     Admin can update title, description, category, time limit
     or pass percentage. All fields are optional — send only what changed.
     """
-    return await quiz_service.update_quiz(quiz_id, data)
+    result = await quiz_service.update_quiz(quiz_id, data)
+    return result
 
 
 @router.delete(
     "/{quiz_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete a quiz",
-    description="Admin only. Soft deletes a quiz by marking it inactive."
+    description="Admin only. Hard deletes a quiz ."
 )
 async def delete_quiz(
     quiz_id: str,
     current_user: dict = Depends(require_admin)
 ):
     """
-    Soft delete — quiz is marked inactive, not permanently removed.
-    Student attempt history linked to this quiz stays intact.
+    Hard delete — quiz is permanently removed.
+    Admins can only delete quizzes that have no questions linked to them.
     """
-    return await quiz_service.delete_quiz(quiz_id)
+    result = await quiz_service.delete_quiz(quiz_id)
+    return result

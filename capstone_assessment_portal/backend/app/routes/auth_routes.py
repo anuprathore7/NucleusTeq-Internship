@@ -34,7 +34,8 @@ async def register(user_data: RegisterUserSchema):
     If validation fails (e.g. password too short), 422 is returned before
     this function even runs.
     """
-    return await auth_service.register_user(user_data)
+    result= await auth_service.register_user(user_data)
+    return result
 
 
 @router.post(
@@ -48,7 +49,8 @@ async def login(login_data: LoginSchema):
     Include the token in future requests as:
         Authorization: Bearer <token>
     """
-    return await auth_service.login_user(login_data)
+    result = await auth_service.login_user(login_data)
+    return result
 
 
 @router.get(
@@ -62,7 +64,8 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     Depends(get_current_user) runs first and injects the user.
     If token is missing or invalid, FastAPI returns 401 before reaching here.
     """
-    return current_user
+    result = current_user
+    return result
 
 @router.post(
     "/refresh",
@@ -76,4 +79,5 @@ async def refresh_token(data: RefreshTokenSchema):
     the client sends the refresh token here to get a new access token
     without making the user login again.
     """
-    return await auth_service.refresh_access_token(data.refresh_token)
+    result = await auth_service.refresh_access_token(data.refresh_token)
+    return result

@@ -32,12 +32,13 @@ class CategoryRepository:
         Used to prevent duplicate categories.
         Case-insensitive search using regex — 'python' matches 'Python'.
         """
-        return await self.collection.find_one(
+        result = await self.collection.find_one(
             {"name": {"$regex": f"^{name}$", "$options": "i"}}
             # $regex = pattern match
             # ^ = start, $ = end means exact match
             # $options: "i" = case insensitive
         )
+        return result
 
     async def find_by_id(self, id: str) -> dict | None:
         """
@@ -45,10 +46,10 @@ class CategoryRepository:
         Returns the document or None if not found.
         """
         object_id = self._to_object_id(id)
-        return await self.collection.find_one({
-        "_id": object_id,
-        "is_active": True          # ADD THIS — ignore soft-deleted docs
-    })
+        result = await self.collection.find_one({
+            "_id": object_id         # ignore soft-deleted docs
+        })
+        return result
 
     async def find_all(self) -> list[dict]:
         """
@@ -56,24 +57,24 @@ class CategoryRepository:
         We filter by is_active=True so soft-deleted categories
         don't appear in the list.
         """
-        cursor = self.collection.find(
-            {"is_active": True}             # only active categories
-        ).sort("created_at", -1)            # -1 = descending (newest first)
+        cursor = self.collection.find({}).sort("created_at", -1)            # -1 = descending (newest first)
 
         # cursor is lazy — it doesn't fetch data until we iterate
         # to_list(None) fetches all results at once
         # None means no limit on number of results
-        return await cursor.to_list(None)
+        result = await cursor.to_list(None)
+        return result
 
     async def create(self, category_data: dict) -> dict:
         """
         Insert a new category document into the collection.
         Returns the complete saved document including the generated _id.
         """
-        result = await self.collection.insert_one(category_data)
+        inserted = await self.collection.insert_one(category_data)
 
         # fetch and return the saved document so caller gets complete data
-        return await self.collection.find_one({"_id": result.inserted_id})
+        result = await self.collection.find_one({"_id": inserted.inserted_id})
+        return result
 
     async def update(self, id: str, update_data: dict) -> dict | None:
         """
@@ -92,24 +93,32 @@ class CategoryRepository:
         )
         return result
 
-    async def delete(self, id: str) -> dict | None:
+    async def delete(self, id: str) -> None:
         """
-        Soft delete a category by setting is_active to False.
-        We never hard-delete data — soft delete means we just
-        hide it from listings but keep it in the DB for audit purposes.
-        If quizzes reference this category, the data stays intact.
-        Returns the updated document or None if not found.
+        Hard delete a category — permanently removes it from MongoDB.
+        No recovery possible after this operation.
+
+        delete_one() removes the document permanently.
+        Returns None — service already has the document
+        fetched before calling this method.
         """
         object_id = self._to_object_id(id)
+        await self.collection.delete_one({"_id": object_id})
 
-        result = await self.collection.find_one_and_update(
-            {"_id": object_id},
-            {
-                "$set": {
-                    "is_active": False,                     # hide from listings
-                    "updated_at": datetime.now(timezone.utc) # track when deleted
-                }
-            },
-            return_document=True
-        )
+    async def count_quizzes_by_category(self, category_id: str) -> int:
+        """
+        Count how many active quizzes are linked to this category.
+
+        Used before deleting a category to check if it is safe to delete.
+        If count > 0, the delete is blocked — admin must remove
+        all quizzes under this category first.
+
+        count_documents() is efficient — it only returns a number,
+        not the actual documents. Much faster than fetching all quizzes
+        just to check if any exist.
+        """
+        result = await database["quizzes"].count_documents({
+            "category_id": category_id,
+            "is_active": True
+        })
         return result

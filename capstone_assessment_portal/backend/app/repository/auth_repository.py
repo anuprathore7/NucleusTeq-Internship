@@ -23,13 +23,15 @@ class AuthRepository:
         Returns the full user document (dict) or None if not found.
         find_one is like: SELECT * FROM users WHERE email = ? LIMIT 1
         """
-        return await self.collection.find_one({"email": email})
+        result = await self.collection.find_one({"email": email})
+        return result
 
     async def find_user_by_username(self, username: str) -> dict | None:
         """
         Search for one user matching the given username.
         """
-        return await self.collection.find_one({"username": username})
+        result = await self.collection.find_one({"username": username})
+        return result
 
     async def find_user_by_id(self, user_id: str) -> dict | None:
         """
@@ -37,7 +39,8 @@ class AuthRepository:
         We convert the string user_id to ObjectId because
         MongoDB stores IDs as ObjectId, not plain strings.
         """
-        return await self.collection.find_one({"_id": ObjectId(user_id)})
+        result = await self.collection.find_one({"_id": ObjectId(user_id)})
+        return result
 
     async def create_user(self, user_data: dict) -> dict:
         """
@@ -46,11 +49,11 @@ class AuthRepository:
         the complete saved version including the auto-generated _id.
         """
         # insert_one saves the document and returns an InsertOneResult object
-        result = await self.collection.insert_one(user_data)
+        inserted = await self.collection.insert_one(user_data)
 
         # result.inserted_id is the ObjectId that MongoDB assigned
         # We use it to fetch back the complete saved document
-        created_user = await self.collection.find_one(
-            {"_id": result.inserted_id}
+        result = await self.collection.find_one(
+            {"_id": inserted.inserted_id}
         )
-        return created_user
+        return result

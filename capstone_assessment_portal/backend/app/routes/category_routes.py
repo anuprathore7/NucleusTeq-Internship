@@ -37,7 +37,8 @@ async def create_category(
     Pydantic validates the body automatically.
     require_admin dependency blocks non-admin users before this runs.
     """
-    return await category_service.create_category(data)
+    result = await category_service.create_category(data)
+    return result
 
 
 @router.get(
@@ -54,7 +55,8 @@ async def get_categories(
     Returns list of all active categories with total count.
     Both admin and student can access this.
     """
-    return await category_service.get_all_categories()
+    result = await category_service.get_all_categories()
+    return result
 
 @router.get(""
     "/{category_id}" , 
@@ -67,7 +69,8 @@ async def get_a_category(
     category_id : str , 
     current_user : dict = Depends(get_current_user)
     ):
-    return await category_service.get_a_category(category_id)
+    result = await category_service.get_a_category(category_id)
+    return result
 
 
 @router.put(
@@ -87,21 +90,22 @@ async def update_category(
     Both name and description are optional in the request body.
     Only provided fields are updated.
     """
-    return await category_service.update_category(category_id, data)
+    result = await category_service.update_category(category_id, data)
+    return result
 
 
 @router.delete(
     "/{category_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete a category",
-    description="Admin only. Soft deletes a category (marks as inactive)."
+    description="Admin only. Hard deletes a category "
 )
 async def delete_category(
     category_id: str,
     current_user: dict = Depends(require_admin)
 ):
     """
-    Soft delete — category is marked inactive, not permanently removed.
-    This protects any quizzes that are linked to this category.
+    Hard delete — category is permanently removed.
     """
-    return await category_service.delete_category(category_id)
+    result = await category_service.delete_category(category_id)
+    return result

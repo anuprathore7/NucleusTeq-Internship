@@ -40,11 +40,11 @@ class QuizRepository:
         Case-insensitive search using regex so
         "python basics" matches "Python Basics".
         """
-        return await self.collection.find_one({
+        result = await self.collection.find_one({
             "title": {"$regex": f"^{title}$", "$options": "i"},
-            "category_id": category_id,     # same category check
-            "is_active": True               # only check active quizzes
+            "category_id": category_id,     # same category check        
         })
+        return result
 
     async def find_by_id(self, id: str) -> dict | None:
         """
@@ -54,7 +54,10 @@ class QuizRepository:
         Returns None if no quiz with that ID exists.
         """
         object_id = self._to_object_id(id)
-        return await self.collection.find_one({"_id": object_id , "is_active": True })
+        result = await self.collection.find_one({
+            "_id": object_id
+        })
+        return result
 
     async def find_all(self) -> list[dict]:
         """
@@ -68,11 +71,10 @@ class QuizRepository:
 
         to_list(None) — None means fetch ALL results with no limit.
         """
-        cursor = self.collection.find(
-            {"is_active": True}
-        ).sort("created_at", -1)
+        cursor = self.collection.find({}).sort("created_at", -1)
 
-        return await cursor.to_list(None)
+        result = await cursor.to_list(None)
+        return result
 
     async def find_by_category(self, category_id: str) -> list[dict]:
         """
@@ -85,20 +87,21 @@ class QuizRepository:
         Example: fetch all quizzes under "Python Programming" category
         """
         cursor = self.collection.find({
-            "category_id": category_id,
-            "is_active": True
+            "category_id": category_id
         }).sort("created_at", -1)
 
-        return await cursor.to_list(None)
+        result = await cursor.to_list(None)
+        return result
 
     async def create(self, quiz_data: dict) -> dict:
         """
         Insert a new quiz document into the quizzes collection.
         """
-        result = await self.collection.insert_one(quiz_data)
+        inserted = await self.collection.insert_one(quiz_data)
 
         # fetch the complete saved document to return to the service
-        return await self.collection.find_one({"_id": result.inserted_id})
+        result = await self.collection.find_one({"_id": inserted.inserted_id})
+        return result
 
     async def update(self, id: str, update_data: dict) -> dict | None:
         """
@@ -113,27 +116,17 @@ class QuizRepository:
         """
         object_id = self._to_object_id(id)
 
-        return await self.collection.find_one_and_update(
+        result = await self.collection.find_one_and_update(
             {"_id": object_id},
             {"$set": update_data},
             return_document=True
         )
+        return result
 
-    async def delete(self, id: str) -> dict | None:
+    async def delete(self, id: str) -> None:
         """
-        Soft delete a quiz by setting is_active to False.
-
-        Returns the updated document or None if not found.
+        Hard delete a quiz — permanently removes it from MongoDB.
+        No recovery possible after this operation.
         """
         object_id = self._to_object_id(id)
-
-        return await self.collection.find_one_and_update(
-            {"_id": object_id},
-            {
-                "$set": {
-                    "is_active": False,
-                    "updated_at": datetime.now(timezone.utc)
-                }
-            },
-            return_document=True
-        )
+        await self.collection.delete_one({"_id": object_id})

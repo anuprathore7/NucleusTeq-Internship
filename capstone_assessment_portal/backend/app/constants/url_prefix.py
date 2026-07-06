@@ -14,3 +14,4 @@ Final URL example: /assessment/v1/auth/register
 AUTH_PREFIX = "/auth"
 CATEGORY_PREFIX = "/categories"  
 QUIZ_PREFIX = "/quizzes"  
+QUESTION_PREFIX = "/questions"  

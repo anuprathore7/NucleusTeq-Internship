@@ -1,50 +1,33 @@
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from main import app
 
+
 """
-conftest.py — Special pytest file
-
-pytest automatically reads this file BEFORE running any test.
-we never import conftest.py manually — pytest does it for us.
-
-FIXTURES — reusable setup code shared across ALL test files.
-
-In our case:
-- client fixture    → creates a fake HTTP client to call our API
-- admin_token       → logs in as admin, returns JWT token
-- student_token     → logs in as student, returns JWT token
-- admin_headers     → builds the Authorization header for admin
-- student_headers   → builds the Authorization header for student
+conftest.py — root level shared fixtures for all test files.
 """
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def client():
     """
-    Creates a TestClient for our FastAPI app.
+    Creates ONE TestClient shared across the entire test session.
+    scope="session" = created once, used by every test file.
 
-    TestClient is like a FAKE BROWSER.
-    It calls our API directly in memory — no real HTTP request.
-    No need to run uvicorn separately.
-
-    We use "module" so we don't create a new client for every test.
+    We pass raise_server_exceptions=True so test failures show
+    the real error, not a generic 500.
     """
-    with TestClient(app) as test_client:
-        # yield means: "give this to the test, then come back here after"
-        # everything BEFORE yield = setup
-        # everything AFTER yield = teardown (cleanup)
+
+    with TestClient(app, raise_server_exceptions=True) as test_client:
         yield test_client
-        # TestClient closes cleanly after all tests in module finish
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def admin_token(client):
     """
-    Logs in as admin and returns the access token.
-
-    admin_token takes 'client' as a parameter.
-    This means admin_token DEPENDS ON client fixture.
+    Logs in as admin once for the entire test session.
+    scope="session" = login happens once, token reused everywhere.
     """
     response = client.post(
         "/assessment/v1/auth/login",
@@ -54,65 +37,57 @@ def admin_token(client):
         }
     )
 
-    # make sure login worked before extracting token
     assert response.status_code == 200, \
-        f"Admin login failed! Check email/password. Got: {response.json()}"
+        f"Admin login failed. Response: {response.json()}"
 
-    # extract and return just the token string
     return response.json()["access_token"]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def student_token(client):
     """
-    Creates a test student account and returns their token.
+    Registers and logs in a student once for the entire test session.
+    Uses uuid so it never conflicts with existing data.
     """
+    unique_suffix = uuid.uuid4().hex[:8]
+    unique_email = f"teststudent_{unique_suffix}@test.com"
+    unique_username = f"teststudent_{unique_suffix}"
 
-    # register a test student
-    # ignore if already exists (email conflict) — might be from previous run
+    # register — ignore if already exists from a previous run
     client.post(
         "/assessment/v1/auth/register",
         json={
-            "username": "test_student_user",
-            "email": "teststudent@testmail.com",
+            "username": unique_username,
+            "email": unique_email,
             "password": "Test@1234"
         }
     )
 
-    # login to get token
     response = client.post(
         "/assessment/v1/auth/login",
         json={
-            "email": "teststudent@testmail.com",
+            "email": unique_email,
             "password": "Test@1234"
         }
     )
 
     assert response.status_code == 200, \
-        f"Student login failed! Got: {response.json()}"
+        f"Student login failed. Response: {response.json()}"
 
     return response.json()["access_token"]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def admin_headers(admin_token):
     """
-    Builds the Authorization header dict for admin requests.
-
-    Every protected API call needs this header:
-    Authorization: Bearer eyJhbGci...
-
-    With this fixture:
-    def test_something(self, client, admin_headers):
-    → admin_headers already has the dict ready
+    Authorization header dict for admin — built once, reused everywhere.
     """
     return {"Authorization": f"Bearer {admin_token}"}
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def student_headers(student_token):
     """
-    Builds the Authorization header dict for student requests.
-    Used to test that students CANNOT access admin-only endpoints.
+    Authorization header dict for student — built once, reused everywhere.
     """
     return {"Authorization": f"Bearer {student_token}"}

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.config.logger import get_logger
 from app.repository.quiz_repository import QuizRepository
 from app.repository.category_repository import CategoryRepository
 from app.schemas.request.quiz_schema import CreateQuizSchema, UpdateQuizSchema
@@ -10,54 +11,56 @@ from app.schemas.response.quiz_response_schema import (
 from app.exceptions.quiz_exceptions import (
     QuizNotFoundException,
     QuizAlreadyExistsException,
-    QuizCategoryNotFoundException
+    QuizCategoryNotFoundException,
+    QuizHasQuestionsException 
 )
 from app.utils.quiz_mapper import quiz_to_response, quizzes_to_response
+from app.schemas.response.message_response_schema import MessageResponseSchema
+from app.constants.message import QUIZ_DELETED
+from app.repository.question_repository import QuestionRepository
+        
+
+logger = get_logger(__name__)
 
 
 class QuizService:
     """
     Contains all business logic for quiz operations.
-
-    It uses two repositories:
-    - QuizRepository → for quiz DB operations
-    - CategoryRepository → to verify category exists when creating/updating quiz
+    Uses QuizRepository and CategoryRepository.
     """
 
     def __init__(self):
         self.quiz_repo = QuizRepository()
-        # We need category repo to validate that category_id actually exists
-        # before linking a quiz to it
         self.category_repo = CategoryRepository()
+        self.question_repo = QuestionRepository()
 
     async def create_quiz(
         self,
         data: CreateQuizSchema
     ) -> QuizResponseSchema:
         """
-        Create a new quiz under a category.
+        Create a new quiz after verifying category exists
+        and no duplicate title exists in the same category.
         """
+        logger.info(f"Create quiz attempt: '{data.title}' under category: {data.category_id}")
 
-        # verify category exists
-        # We use category_repo here because quiz service should not
-        # contain category DB code — it just asks category repo
         category = await self.category_repo.find_by_id(data.category_id)
         if not category:
+            logger.warning(f"Create quiz failed — category not found: {data.category_id}")
             raise QuizCategoryNotFoundException()
 
-        # check for duplicate title in same category
         existing = await self.quiz_repo.find_by_title_and_category(
             data.title,
             data.category_id
         )
         if existing:
+            logger.warning(f"Create quiz failed — duplicate title: '{data.title}'")
             raise QuizAlreadyExistsException()
 
-        # build the MongoDB document
         new_quiz = {
             "title": data.title,
             "description": data.description,
-            "category_id": data.category_id,    # stored as string reference
+            "category_id": data.category_id,
             "time_limit": data.time_limit,
             "pass_percentage": data.pass_percentage,
             "is_active": True,
@@ -65,21 +68,23 @@ class QuizService:
             "updated_at": datetime.now(timezone.utc)
         }
 
-        # save to database
         saved_quiz = await self.quiz_repo.create(new_quiz)
+        logger.info(f"Quiz created successfully: '{data.title}'")
 
-        # convert to clean response and return
-        return quiz_to_response(saved_quiz)
+        result = quiz_to_response(saved_quiz)
+        return result
 
     async def get_all_quizzes(self) -> QuizListResponseSchema:
         """
-        Fetch all active quizzes.
-
-        Available to any logged in user — both admin and student.
-        Students need this to see what quizzes are available to attempt.
+        Fetch all active quizzes for any logged in user.
         """
+        logger.info("Fetching all active quizzes")
+
         quizzes = await self.quiz_repo.find_all()
-        return quizzes_to_response(quizzes)
+        logger.info(f"Returned {len(quizzes)} quizzes")
+
+        result = quizzes_to_response(quizzes)
+        return result
 
     async def get_quiz_by_id(
         self,
@@ -88,36 +93,38 @@ class QuizService:
         """
         Fetch a single quiz by its ID.
         """
-        quiz = await self.quiz_repo.find_by_id(quiz_id)
+        logger.info(f"Fetching quiz by id: {quiz_id}")
 
+        quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not quiz:
+            logger.warning(f"Quiz not found: {quiz_id}")
             raise QuizNotFoundException()
 
-        return quiz_to_response(quiz)
+        logger.info(f"Quiz found: '{quiz['title']}'")
+
+        result = quiz_to_response(quiz)
+        return result
 
     async def get_quizzes_by_category(
         self,
         category_id: str
     ) -> QuizListResponseSchema:
         """
-        Fetch all quizzes belonging to a specific category.
-
-        Why verify category first?
-        If someone sends a wrong category_id, we return a clear
-        404 instead of returning an empty list that looks like
-        "category exists but has no quizzes".
+        Fetch all quizzes under a specific category.
+        Verifies category exists before querying quizzes.
         """
+        logger.info(f"Fetching quizzes for category: {category_id}")
 
-        # verify category actually exists
         category = await self.category_repo.find_by_id(category_id)
         if not category:
+            logger.warning(f"Get quizzes by category failed — category not found: {category_id}")
             raise QuizCategoryNotFoundException()
 
-        # fetch quizzes for this category
         quizzes = await self.quiz_repo.find_by_category(category_id)
+        logger.info(f"Returned {len(quizzes)} quizzes for category: {category_id}")
 
-        # return structured response
-        return quizzes_to_response(quizzes)
+        result = quizzes_to_response(quizzes)
+        return result
 
     async def update_quiz(
         self,
@@ -125,60 +132,62 @@ class QuizService:
         data: UpdateQuizSchema
     ) -> QuizResponseSchema:
         """
-        Update an existing quiz.
+        Update an existing quiz's fields.
+        Validates category and duplicate title if those fields are changing.
         """
+        logger.info(f"Update quiz attempt for id: {quiz_id}")
 
-        # confirm quiz exists
         existing_quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not existing_quiz:
+            logger.warning(f"Update failed — quiz not found: {quiz_id}")
             raise QuizNotFoundException()
 
-        # if category is being changed, validate new category exists
         if data.category_id:
             category = await self.category_repo.find_by_id(data.category_id)
             if not category:
+                logger.warning(f"Update failed — new category not found: {data.category_id}")
                 raise QuizCategoryNotFoundException()
 
-        # if title is changing, check for duplicate in target category
-        # target category = new category if provided, else existing category
         if data.title:
             target_category_id = data.category_id or existing_quiz["category_id"]
             duplicate = await self.quiz_repo.find_by_title_and_category(
                 data.title,
                 target_category_id
             )
-            # make sure the duplicate found is not the quiz we are updating
             if duplicate and str(duplicate["_id"]) != quiz_id:
+                logger.warning(f"Update failed — duplicate title: '{data.title}'")
                 raise QuizAlreadyExistsException()
 
-        # build update dict, skip fields that were not provided
-        # exclude_none=True means None fields are not included
-        # so we don't overwrite existing DB values with None
         update_data = data.model_dump(exclude_none=True)
         update_data["updated_at"] = datetime.now(timezone.utc)
 
-        # save and return
         updated_quiz = await self.quiz_repo.update(quiz_id, update_data)
-        return quiz_to_response(updated_quiz)
+        logger.info(f"Quiz updated successfully: {quiz_id}")
 
-    async def delete_quiz(self, quiz_id: str) -> dict:
+        result = quiz_to_response(updated_quiz)
+        return result
+
+    async def delete_quiz(self, quiz_id: str) -> MessageResponseSchema:
         """
-        Soft delete a quiz.
-
-        Soft delete means is_active = False.
-        The quiz stays in MongoDB but disappears from all listings.
-        Student attempt history linked to this quiz remains intact.
+        Hard delete a quiz after verifying no questions are linked to it.
         """
+        logger.info(f"Delete quiz attempt for id: {quiz_id}")
 
-        # confirm it exists before trying to delete
         existing_quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not existing_quiz:
+            logger.warning(f"Delete failed — quiz not found: {quiz_id}")
             raise QuizNotFoundException()
 
-        # soft delete
-        await self.quiz_repo.delete(quiz_id)
+        question_count = await self.question_repo.count_by_quiz(quiz_id)
+        if question_count > 0:
+            logger.warning(
+                f"Delete failed — quiz {quiz_id} "
+                f"has {question_count} linked questions"
+            )
+            raise QuizHasQuestionsException()
 
-        # return confirmation
-        return {
-            "message": f"Quiz '{existing_quiz['title']}' deleted successfully"
-        }
+        await self.quiz_repo.delete(quiz_id)
+        logger.info(f"Quiz hard deleted successfully: '{existing_quiz['title']}'")
+
+        result = MessageResponseSchema(message=QUIZ_DELETED)
+        return result
