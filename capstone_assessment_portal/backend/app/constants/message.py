@@ -49,3 +49,19 @@ QUESTION_DELETED = "Question deleted successfully"
 
 CATEGORY_HAS_QUIZZES = "Cannot delete category. Please delete all linked quizzes first."
 QUIZ_HAS_QUESTIONS = "Cannot delete quiz. Please delete all linked questions first."
+
+# ── Attempt Messages ──────────────────────────────────────────────────────────
+
+ATTEMPT_NOT_FOUND = "Attempt not found"
+ATTEMPT_INVALID_ID = "Invalid attempt ID format"
+ATTEMPT_QUIZ_NOT_FOUND = "Quiz not found. Please provide a valid quiz ID"
+ATTEMPT_ALREADY_SUBMITTED = "This attempt has already been submitted"
+ATTEMPT_NOT_IN_PROGRESS = "This attempt is not in progress"
+ATTEMPT_UNAUTHORIZED = "You are not authorized to access this attempt"
+ATTEMPT_INVALID_QUESTION = "One or more question IDs do not belong to this quiz"
+ATTEMPT_STARTED = "Quiz attempt started successfully"
+ATTEMPT_SUBMITTED = "Quiz submitted successfully"
+ATTEMPT_MAX_REACHED = "You have reached the maximum number of attempts for this quiz"
+ATTEMPT_ANSWER_SAVED = "Answer saved successfully"
+ATTEMPT_AUTO_SUBMITTED = "Time expired. Quiz has been auto submitted"
+ATTEMPT_EXPIRED = "Quiz time has expired"
