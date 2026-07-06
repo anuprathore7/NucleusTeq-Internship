@@ -20,10 +20,6 @@ class SaveAnswerSchema(BaseModel):
 
     Frontend calls this automatically every time
     student selects an option — no manual action needed.
-
-    If student changes their answer for same question,
-    this overwrites the previous answer.
-    Only one answer stored per question at any time.
     """
     question_id: str = Field(
         ...,
@@ -43,8 +39,6 @@ class SubmitAttemptSchema(BaseModel):
     Request body when student manually submits quiz.
 
     Student clicks submit button.
-    No answers needed in body — all answers
-    were already saved via POST /answer endpoint.
-    System evaluates whatever is saved in attempt.answers.
+    No answers needed in body — all answers already saved via /answer endpoint.
     """
     pass

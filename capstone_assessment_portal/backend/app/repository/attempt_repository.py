@@ -82,26 +82,10 @@ class AttemptRepository:
     ) -> dict | None:
         """
         Save or update a single answer in the attempt document.
-
-        How it works:
-        MongoDB $set with array filter — finds the answer for this
-        question_id in the answers array and updates it if exists.
-
-        If question not answered yet → $push adds new answer.
-        If question already answered → $set updates existing answer.
-
-        This is a two step operation:
-        Step 1: try to update existing answer using arrayFilters
-        Step 2: if no answer existed → push new answer
-
-        Why this approach?
-        → Student can change their answer
-        → Only ONE answer per question stored at any time
-        → No duplicate answers for same question
         """
         object_id = self._to_object_id(attempt_id)
 
-        # Step 1 — try to update existing answer for this question
+        # Try to update existing answer for this question
         update_result = await self.collection.update_one(
             {
                 "_id": object_id,
@@ -115,7 +99,7 @@ class AttemptRepository:
             }
         )
 
-        # Step 2 — if no existing answer found, add new one
+        # if no existing answer found, add new one
         # update_result.modified_count = 0 means no answer existed for this question
         if update_result.modified_count == 0:
             await self.collection.update_one(
@@ -141,12 +125,6 @@ class AttemptRepository:
     ) -> dict | None:
         """
         Update the attempt document on submission.
-
-        Stores:
-        - status = submitted
-        - score, total_marks, percentage, passed
-        - answer_breakdown (per question result)
-        - submitted_at timestamp
 
         $set updates only the provided fields.
         return_document=True returns the updated document.

@@ -81,8 +81,8 @@ async def get_attempt(
     Frontend uses saved answers to tick the options student already selected.
 
     If time has expired:
-    → auto submits with saved answers
-    → returns auto submitted message instead of attempt
+    auto submits with saved answers
+    returns auto submitted message instead of attempt
     """
     result = await attempt_service.get_attempt(
         attempt_id,
@@ -107,13 +107,6 @@ async def save_answer(
     Saves one answer for one question.
     Frontend calls this every time student selects or changes an option.
     Student does NOT manually click save — it is automatic.
-
-    If student changes answer → previous answer is overwritten.
-    Only one answer per question stored at any time.
-
-    If time expired when this is called:
-    → auto submits with all saved answers so far
-    → returns auto submitted message
     """
     result = await attempt_service.save_answer(
         attempt_id,
@@ -138,10 +131,6 @@ async def submit_attempt(
     Student manually clicks submit.
     No body needed — all answers already saved via /answer endpoint.
     System evaluates whatever is saved in attempt.answers.
-
-    Unanswered questions get 0 marks.
-    Returns success message.
-    Result details available through Result module later.
     """
     result = await attempt_service.submit_attempt(
         attempt_id,

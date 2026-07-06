@@ -89,20 +89,9 @@ class AttemptService:
 
         Loops through ALL questions in snapshot.
         For each question:
-        - finds student answer in attempt.answers (or empty if not answered)
-        - compares with correct_answer from snapshot
-        - calculates marks
-
-        Returns a dict with:
-        - score         → total marks obtained
-        - total_marks   → total possible marks
-        - percentage    → score / total_marks * 100
-        - passed        → percentage >= pass_percentage
-        - answer_breakdown → per question result
-
-        Why read from snapshot and not from questions collection?
-        Admin may have edited or deleted questions after attempt started.
-        Snapshot is the frozen version at start time — always correct.
+        finds student answer in attempt.answers (or empty if not answered)
+        compares with correct_answer from snapshot
+        calculates marks
         """
         # build lookup: question_id → selected_answer
         # student may not have answered all questions
@@ -199,20 +188,12 @@ class AttemptService:
     ) -> AttemptResponseSchema:
         """
         Start a new quiz attempt for a student.
-
-        Flow:
-        1. Verify quiz exists
-        2. Check student has not exceeded max 2 attempts
-        3. Fetch all questions for this quiz
-        4. Build snapshot — copy everything into attempt document
-        5. Save attempt with status in_progress
-        6. Return attempt with questions (no correct answers)
         """
         logger.info(
             f"Start attempt — student: {student_id}, quiz: {data.quiz_id}"
         )
 
-        # Step 1 — verify quiz exists
+        # verify quiz exists
         quiz = await self.quiz_repo.find_by_id(data.quiz_id)
         if not quiz:
             logger.warning(
@@ -220,7 +201,7 @@ class AttemptService:
             )
             raise AttemptQuizNotFoundException()
 
-        # Step 2 — check max attempts not exceeded
+        # check max attempts not exceeded
         attempt_count = await self.attempt_repo.count_attempts_by_student_and_quiz(
             student_id,
             data.quiz_id
@@ -232,10 +213,10 @@ class AttemptService:
             )
             raise AttemptMaxReachedException()
 
-        # Step 3 — fetch all questions for this quiz
+        # fetch all questions for this quiz
         questions = await self.question_repo.find_by_quiz_id(data.quiz_id)
 
-        # Step 4 — build snapshot
+        # build snapshot
         # correct_answer stored in snapshot for scoring
         # but never returned to student in response
         questions_snapshot = [
@@ -252,7 +233,7 @@ class AttemptService:
             for q in questions
         ]
 
-        # Step 5 — build and save attempt document
+        # build and save attempt document
         new_attempt = {
             "student_id": student_id,
             "quiz_id": data.quiz_id,
@@ -294,10 +275,6 @@ class AttemptService:
         Returns questions from snapshot (no correct answers)
         and answers student already saved so frontend can
         show which options are already ticked.
-
-        Also checks if time expired:
-        → if expired and in_progress → auto submit first
-        → then return success message
         """
         logger.info(
             f"Get attempt — attempt: {attempt_id}, student: {student_id}"
@@ -342,32 +319,19 @@ class AttemptService:
 
         Called automatically by frontend when student
         selects or changes an option — no manual action needed.
-
-        Flow:
-        1. Find attempt
-        2. Verify belongs to this student
-        3. Check time not expired (auto submit if expired)
-        4. Verify attempt is still in_progress
-        5. Verify question exists in snapshot
-        6. Save or overwrite answer
-        7. Return success message
-
-        If student changes answer:
-        → previous answer is overwritten
-        → only one answer per question stored
         """
         logger.info(
             f"Save answer — attempt: {attempt_id}, "
             f"question: {data.question_id}"
         )
 
-        # Step 1 — find attempt
+        # find attempt
         attempt = await self.attempt_repo.find_by_id(attempt_id)
         if not attempt:
             logger.warning(f"Attempt not found: {attempt_id}")
             raise AttemptNotFoundException()
 
-        # Step 2 — verify belongs to this student
+        # verify belongs to this student
         if attempt["student_id"] != student_id:
             logger.warning(
                 f"Unauthorized save — student {student_id}, "
@@ -375,7 +339,7 @@ class AttemptService:
             )
             raise AttemptUnauthorizedException()
 
-        # Step 3 — check time expired
+        # check time expired
         if self._is_time_expired(attempt):
             logger.info(
                 f"Time expired on save answer — auto submitting: {attempt_id}"
@@ -383,14 +347,14 @@ class AttemptService:
             result = await self._auto_submit(attempt)
             return result
 
-        # Step 4 — verify attempt is still in_progress
+        # verify attempt is still in_progress
         if attempt["status"] != ATTEMPT_STATUS_IN_PROGRESS:
             logger.warning(
                 f"Save failed — attempt already submitted: {attempt_id}"
             )
             raise AttemptAlreadySubmittedException()
 
-        # Step 5 — verify question exists in snapshot
+        # verify question exists in snapshot
         # student can only answer questions from their snapshot
         snapshot_question_ids = {
             q["question_id"]
@@ -403,7 +367,7 @@ class AttemptService:
             )
             raise AttemptInvalidQuestionException()
 
-        # Step 6 — save or overwrite answer
+        # save or overwrite answer
         await self.attempt_repo.save_answer(
             attempt_id,
             data.question_id,
@@ -414,7 +378,7 @@ class AttemptService:
             f"question: {data.question_id}"
         )
 
-        # Step 7 — return success message
+        # return success message
         result = MessageResponseSchema(message=ATTEMPT_ANSWER_SAVED)
         return result
 
@@ -429,21 +393,12 @@ class AttemptService:
         Student clicks submit button — no answers in request body.
         All answers were already saved via POST /answer endpoint.
         System evaluates whatever is saved in attempt.answers.
-
-        Flow:
-        1. Find attempt
-        2. Verify belongs to this student
-        3. Verify attempt is in_progress
-        4. Check time — if expired auto submit (same result)
-        5. Evaluate saved answers
-        6. Store score and mark as submitted
-        7. Return success message
         """
         logger.info(
             f"Submit attempt — attempt: {attempt_id}, student: {student_id}"
         )
 
-        # Step 1 — find attempt
+        # find attempt
         attempt = await self.attempt_repo.find_by_id(attempt_id)
         if not attempt:
             logger.warning(
@@ -451,7 +406,7 @@ class AttemptService:
             )
             raise AttemptNotFoundException()
 
-        # Step 2 — verify belongs to this student
+        # verify belongs to this student
         if attempt["student_id"] != student_id:
             logger.warning(
                 f"Unauthorized submit — student {student_id}, "
@@ -459,14 +414,14 @@ class AttemptService:
             )
             raise AttemptUnauthorizedException()
 
-        # Step 3 — verify attempt is in_progress
+        # verify attempt is in_progress
         if attempt["status"] != ATTEMPT_STATUS_IN_PROGRESS:
             logger.warning(
                 f"Submit failed — already submitted: {attempt_id}"
             )
             raise AttemptAlreadySubmittedException()
 
-        # Step 4 — check time (auto submit handles expired case same way)
+        # check time (auto submit handles expired case same way)
         if self._is_time_expired(attempt):
             logger.info(
                 f"Time expired on manual submit — auto submitting: {attempt_id}"
@@ -474,7 +429,7 @@ class AttemptService:
             result = await self._auto_submit(attempt)
             return result
 
-        # Step 5 — evaluate saved answers
+        # evaluate saved answers
         evaluation = self._evaluate_answers(attempt)
 
         logger.info(
@@ -484,7 +439,7 @@ class AttemptService:
             f"passed: {evaluation['passed']}"
         )
 
-        # Step 6 — store score and mark as submitted
+        # store score and mark as submitted
         update_data = {
             "status": ATTEMPT_STATUS_SUBMITTED,
             "score": evaluation["score"],
@@ -498,7 +453,7 @@ class AttemptService:
         await self.attempt_repo.submit_attempt(attempt_id, update_data)
         logger.info(f"Attempt submitted successfully: {attempt_id}")
 
-        # Step 7 — return success message
+        # return success message
         result = MessageResponseSchema(message=ATTEMPT_SUBMITTED)
         return result
 
