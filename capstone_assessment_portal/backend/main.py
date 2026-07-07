@@ -7,6 +7,8 @@ from app.routes.auth_routes import router as auth_router
 from app.routes.category_routes import router as category_router
 from app.routes.quiz_routes import router as quiz_router
 from app.routes.question_routes import router as question_router
+from app.routes.attempt_routes import router as attempt_router
+
 
 """
 main.py has exactly ONE job:
@@ -28,6 +30,7 @@ app.include_router(auth_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(category_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(quiz_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(question_router, prefix=URL_PREFIX + API_VERSION)
+app.include_router(attempt_router, prefix=URL_PREFIX + API_VERSION)
 
 
 @app.get("/")

@@ -7,11 +7,9 @@ without breaking existing clients
 URL_PREFIX = "/assessment"
 API_VERSION = "/v1"
 
-"""
-Each module gets its own sub-path
-Final URL example: /assessment/v1/auth/register
-"""
+
 AUTH_PREFIX = "/auth"
 CATEGORY_PREFIX = "/categories"  
 QUIZ_PREFIX = "/quizzes"  
-QUESTION_PREFIX = "/questions"  
+QUESTION_PREFIX = "/questions"
+ATTEMPT_PREFIX = "/attempts"
