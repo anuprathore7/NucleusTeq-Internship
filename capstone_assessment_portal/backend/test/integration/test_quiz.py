@@ -312,3 +312,356 @@ class TestQuizAPI:
 
         assert response.status_code == 404, \
             f"Expected 404 but got {response.status_code}"
+    def test_get_quizzes_by_invalid_category(self, client, admin_headers):
+        """
+        Verifies fetching quizzes for a non-existent category id
+        returns 404 Not Found instead of empty list.
+        This hits get_quizzes_by_category service with missing category.
+        """
+        response = client.get(
+            "/assessment/v1/quizzes/category/000000000000000000000000",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 404, \
+            f"Expected 404 but got {response.status_code}"
+
+    def test_get_quizzes_by_malformed_category_id(self, client, admin_headers):
+        """
+        Verifies fetching quizzes with a malformed category id
+        returns 400 Bad Request instead of server error.
+        This hits the _to_object_id conversion in repository.
+        """
+        response = client.get(
+            "/assessment/v1/quizzes/category/not-a-valid-id",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 400, \
+            f"Expected 400 but got {response.status_code}"
+
+    def test_create_duplicate_quiz_title_in_same_category(
+        self, client, admin_headers
+    ):
+        """
+        Verifies creating two quizzes with the same title under the
+        same category is rejected with 409 Conflict.
+        This hits QuizAlreadyExistsException in quiz_service.create_quiz.
+        """
+        fresh_category_id = self._create_test_category(client, admin_headers)
+        unique_title = f"Duplicate Quiz {uuid.uuid4().hex[:8]}"
+
+        client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": unique_title,
+                "description": "First quiz",
+                "category_id": fresh_category_id,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+
+        response = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": unique_title,
+                "description": "Duplicate quiz same title",
+                "category_id": fresh_category_id,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+
+        assert response.status_code == 409, \
+            f"Expected 409 but got {response.status_code}"
+
+    def test_same_title_different_category_is_allowed(
+        self, client, admin_headers
+    ):
+        """
+        Verifies same quiz title is allowed under a different category.
+        Duplicate check is scoped to same category only.
+        This hits the title + category duplicate logic in quiz_service.
+        """
+        category_one = self._create_test_category(client, admin_headers)
+        category_two = self._create_test_category(client, admin_headers)
+        shared_title = f"Shared Title Quiz {uuid.uuid4().hex[:8]}"
+
+        response_one = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": shared_title,
+                "description": "First category quiz",
+                "category_id": category_one,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+
+        response_two = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": shared_title,
+                "description": "Second category quiz same title",
+                "category_id": category_two,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+
+        assert response_one.status_code == 201, \
+            f"First quiz should succeed but got {response_one.status_code}"
+        assert response_two.status_code == 201, \
+            f"Same title in different category should be allowed but got {response_two.status_code}"
+
+    def test_update_quiz_with_invalid_category_id(self, client, admin_headers):
+        """
+        Verifies updating a quiz with a non-existent category_id
+        returns 404. This hits QuizCategoryNotFoundException
+        in quiz_service.update_quiz when new category is checked.
+        """
+        fresh_category = self._create_test_category(client, admin_headers)
+        quiz = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Update Cat Quiz {uuid.uuid4().hex[:8]}",
+                "description": "Quiz for update category test",
+                "category_id": fresh_category,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_id = quiz.json()["id"]
+
+        response = client.put(
+            f"/assessment/v1/quizzes/{quiz_id}",
+            json={"category_id": "000000000000000000000000"},
+            headers=admin_headers
+        )
+
+        assert response.status_code == 404, \
+            f"Expected 404 but got {response.status_code}"
+
+    def test_update_quiz_pass_percentage(self, client, admin_headers):
+        """
+        Verifies admin can update only pass_percentage of a quiz
+        without affecting other fields.
+        This hits the partial update logic in quiz_service.update_quiz.
+        """
+        fresh_category = self._create_test_category(client, admin_headers)
+        quiz = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Pass Pct Quiz {uuid.uuid4().hex[:8]}",
+                "description": "Quiz for pass percentage update test",
+                "category_id": fresh_category,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_id = quiz.json()["id"]
+
+        response = client.put(
+            f"/assessment/v1/quizzes/{quiz_id}",
+            json={"pass_percentage": 80.0},
+            headers=admin_headers
+        )
+
+        assert response.status_code == 200, \
+            f"Expected 200 but got {response.status_code}"
+
+        data = response.json()
+        assert data["pass_percentage"] == 80.0
+        assert data["time_limit"] == 30
+
+    def test_update_quiz_to_duplicate_title_in_same_category_returns_409(
+        self, client, admin_headers
+    ):
+        """
+        Verifies updating a quiz title to a title that already exists
+        in the same category returns 409 Conflict.
+        This hits the duplicate title check in quiz_service.update_quiz.
+        """
+        fresh_category = self._create_test_category(client, admin_headers)
+        title_one = f"Title One {uuid.uuid4().hex[:8]}"
+        title_two = f"Title Two {uuid.uuid4().hex[:8]}"
+
+        client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": title_one,
+                "description": "First quiz",
+                "category_id": fresh_category,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+
+        quiz_two = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": title_two,
+                "description": "Second quiz",
+                "category_id": fresh_category,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_two_id = quiz_two.json()["id"]
+
+        # try to update quiz_two title to title_one — should conflict
+        response = client.put(
+            f"/assessment/v1/quizzes/{quiz_two_id}",
+            json={"title": title_one},
+            headers=admin_headers
+        )
+
+        assert response.status_code == 409, \
+            f"Expected 409 but got {response.status_code}"
+
+    def test_student_cannot_update_quiz(self, client, student_headers):
+        """
+        Verifies student is blocked from updating a quiz.
+        Confirms require_admin dependency is enforced on PUT route.
+        """
+        response = client.put(
+            "/assessment/v1/quizzes/000000000000000000000000",
+            json={"title": "Student Update Attempt"},
+            headers=student_headers
+        )
+
+        assert response.status_code == 403, \
+            f"Expected 403 but got {response.status_code}"
+
+    def test_student_cannot_delete_quiz(self, client, student_headers):
+        """
+        Verifies student is blocked from deleting a quiz.
+        Confirms require_admin dependency is enforced on DELETE route.
+        This covers SEC-002 from SRS.
+        """
+        response = client.delete(
+            "/assessment/v1/quizzes/000000000000000000000000",
+            headers=student_headers
+        )
+
+        assert response.status_code == 403, \
+            f"Expected 403 but got {response.status_code}"
+
+    def test_delete_quiz_with_questions_returns_409(
+        self, client, admin_headers
+    ):
+        """
+        Verifies deleting a quiz that still has questions linked
+        to it is blocked with 409 Conflict.
+        This hits QuizHasQuestionsException in quiz_service.delete_quiz.
+        Admin must delete all questions first before deleting the quiz.
+        """
+        fresh_category = self._create_test_category(client, admin_headers)
+        quiz = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Quiz With Questions {uuid.uuid4().hex[:8]}",
+                "description": "Quiz that has questions linked",
+                "category_id": fresh_category,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_id = quiz.json()["id"]
+
+        # add a question to this quiz
+        client.post(
+            "/assessment/v1/questions/",
+            json={
+                "quiz_id": quiz_id,
+                "question_text": "Linked question for delete test",
+                "question_type": "mcq",
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "A",
+                "difficulty": "easy",
+                "marks": 1
+            },
+            headers=admin_headers
+        )
+
+        # now try to delete the quiz — should be blocked
+        response = client.delete(
+            f"/assessment/v1/quizzes/{quiz_id}",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 409, \
+            f"Expected 409 but got {response.status_code}. " \
+            f"Should block delete when questions exist"
+
+    def test_delete_quiz_with_malformed_id_returns_400(
+        self, client, admin_headers
+    ):
+        """
+        Verifies deleting a quiz with a malformed id
+        returns 400 Bad Request.
+        """
+        response = client.delete(
+            "/assessment/v1/quizzes/not-a-valid-id",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 400, \
+            f"Expected 400 but got {response.status_code}"
+
+    def test_student_can_view_quiz_list(self, client, student_headers):
+        """
+        Verifies student can access the quiz list endpoint.
+        Quiz list is accessible by any authenticated user.
+        """
+        response = client.get(
+            "/assessment/v1/quizzes/",
+            headers=student_headers
+        )
+
+        assert response.status_code == 200, \
+            f"Expected 200 but got {response.status_code}"
+
+        data = response.json()
+        assert "total" in data
+        assert "quizzes" in data
+
+    def test_student_can_view_quiz_by_id(self, client, admin_headers, student_headers):
+        """
+        Verifies student can fetch a single quiz by id.
+        Quiz detail is accessible by any authenticated user.
+        """
+        fresh_category = self._create_test_category(client, admin_headers)
+        quiz = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Student View Quiz {uuid.uuid4().hex[:8]}",
+                "description": "Quiz student can view",
+                "category_id": fresh_category,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_id = quiz.json()["id"]
+
+        response = client.get(
+            f"/assessment/v1/quizzes/{quiz_id}",
+            headers=student_headers
+        )
+
+        assert response.status_code == 200, \
+            f"Expected 200 but got {response.status_code}"
+
+        data = response.json()
+        assert data["id"] == quiz_id
