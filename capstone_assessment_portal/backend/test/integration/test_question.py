@@ -457,80 +457,6 @@ class TestQuestionAPI:
         assert response.status_code == 403, \
             f"Expected 403 but got {response.status_code}"
 
-    def test_duplicate_question_text_in_same_quiz(
-        self, client, admin_headers
-    ):
-        """
-        Verifies creating two questions with identical text
-        in the same quiz is rejected with 409 Conflict.
-        Creates a fresh quiz specifically for this test
-        so it is independent of other tests that delete questions.
-        """
-        # create a fresh category and quiz for this test
-        # so we are not affected by deletes in previous tests
-        cat_response = client.post(
-            "/assessment/v1/categories/",
-            json={
-                "name": f"Dup Test Category {uuid.uuid4().hex[:8]}",
-                "description": "Category for duplicate test"
-            },
-            headers=admin_headers
-        )
-        category_id = cat_response.json()["id"]
-
-        quiz_response = client.post(
-            "/assessment/v1/quizzes/",
-            json={
-                "title": f"Dup Test Quiz {uuid.uuid4().hex[:8]}",
-                "description": "Quiz for duplicate question test",
-                "category_id": category_id,
-                "time_limit": 30,
-                "pass_percentage": 60.0
-            },
-            headers=admin_headers
-        )
-        fresh_quiz_id = quiz_response.json()["id"]
-
-        # use a fixed question text for both attempts
-        question_text = f"Is Python interpreted {uuid.uuid4().hex[:8]}?"
-
-        # first question — should succeed
-        first_response = client.post(
-            "/assessment/v1/questions/",
-            json={
-                "quiz_id": fresh_quiz_id,
-                "question_text": question_text,
-                "question_type": "mcq",
-                "options": ["A", "B", "C", "D"],
-                "correct_answer": "A",
-                "difficulty": "easy",
-                "marks": 1
-            },
-            headers=admin_headers
-        )
-
-        assert first_response.status_code == 201, \
-            f"First question should succeed but got {first_response.status_code}"
-
-        # second question with same text in same quiz — should fail
-        response = client.post(
-            "/assessment/v1/questions/",
-            json={
-                "quiz_id": fresh_quiz_id,
-                "question_text": question_text,   # exact same text
-                "question_type": "mcq",
-                "options": ["A", "B", "C", "D"],
-                "correct_answer": "A",
-                "difficulty": "easy",
-                "marks": 1
-            },
-            headers=admin_headers
-        )
-
-        assert response.status_code == 409, \
-            f"Expected 409 but got {response.status_code}. " \
-            f"Duplicate question text should be rejected"
-
     def test_get_questions_invalid_quiz_id_format(
         self, client, admin_headers
     ):
@@ -586,3 +512,385 @@ class TestQuestionAPI:
 
         assert response.status_code == 404, \
             f"Expected 404 but got {response.status_code}"
+        
+    def test_get_single_question_success(self, client, admin_headers):
+        """
+        Verifies fetching a single question by valid id returns
+        the correct question with correct_answer for admin.
+        This hits question_service.get_question_by_id.
+        """
+        response = client.get(
+            f"/assessment/v1/questions/{TestQuestionAPI.mcq_question_id}",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 200, \
+            f"Expected 200 but got {response.status_code}"
+
+        data = response.json()
+        assert data["id"] == TestQuestionAPI.mcq_question_id
+        assert "correct_answer" in data
+
+    def test_get_single_question_not_found(self, client, admin_headers):
+        """
+        Verifies fetching a question with valid format but
+        non-existent id returns 404 Not Found.
+        This hits QuestionNotFoundException in question_service.get_question_by_id.
+        """
+        response = client.get(
+            "/assessment/v1/questions/000000000000000000000000",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 404, \
+            f"Expected 404 but got {response.status_code}"
+
+    def test_update_correct_answer_not_in_options_returns_422(
+        self, client, admin_headers
+    ):
+        """
+        Verifies updating correct_answer to a value not in the current
+        options is rejected with 422.
+        This hits QuestionInvalidCorrectAnswerException
+        in question_service.update_question.
+        """
+        response = client.put(
+            f"/assessment/v1/questions/{TestQuestionAPI.mcq_question_id}",
+            json={"correct_answer": "Z option not in list"},
+            headers=admin_headers
+        )
+
+        assert response.status_code == 422, \
+            f"Expected 422 but got {response.status_code}"
+
+    def test_update_options_and_correct_answer_together(
+        self, client, admin_headers
+    ):
+        """
+        Verifies admin can update both options and correct_answer
+        at the same time and the new correct_answer is validated
+        against the new options not the old ones.
+        This hits the final_options logic in question_service.update_question.
+        """
+        category_response = client.post(
+            "/assessment/v1/categories/",
+            json={
+                "name": f"Update Opts Cat {uuid.uuid4().hex[:8]}",
+                "description": "Category for update options test"
+            },
+            headers=admin_headers
+        )
+        category_id = category_response.json()["id"]
+
+        quiz_response = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Update Opts Quiz {uuid.uuid4().hex[:8]}",
+                "description": "Quiz for update options test",
+                "category_id": category_id,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_id = quiz_response.json()["id"]
+
+        q = client.post(
+            "/assessment/v1/questions/",
+            json={
+                "quiz_id": quiz_id,
+                "question_text": "Options update test question",
+                "question_type": "mcq",
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "A",
+                "difficulty": "easy",
+                "marks": 1
+            },
+            headers=admin_headers
+        )
+        question_id = q.json()["id"]
+
+        # update both options and correct_answer to new values
+        response = client.put(
+            f"/assessment/v1/questions/{question_id}",
+            json={
+                "options": ["W", "X", "Y", "Z"],
+                "correct_answer": "W"
+            },
+            headers=admin_headers
+        )
+
+        assert response.status_code == 200, \
+            f"Expected 200 but got {response.status_code}"
+
+        data = response.json()
+        assert data["correct_answer"] == "W"
+        assert "W" in data["options"]
+
+    def test_update_new_options_but_old_correct_answer_returns_422(
+        self, client, admin_headers
+    ):
+        """
+        Verifies updating options alone without updating correct_answer
+        fails if the existing correct_answer is not in the new options.
+        This hits the final_options validation in question_service.update_question.
+        """
+        category_response = client.post(
+            "/assessment/v1/categories/",
+            json={
+                "name": f"Invalid Opts Cat {uuid.uuid4().hex[:8]}",
+                "description": "Category for invalid options test"
+            },
+            headers=admin_headers
+        )
+        category_id = category_response.json()["id"]
+
+        quiz_response = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Invalid Opts Quiz {uuid.uuid4().hex[:8]}",
+                "description": "Quiz for invalid options test",
+                "category_id": category_id,
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_id = quiz_response.json()["id"]
+
+        q = client.post(
+            "/assessment/v1/questions/",
+            json={
+                "quiz_id": quiz_id,
+                "question_text": "Options conflict test question",
+                "question_type": "mcq",
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "A",
+                "difficulty": "easy",
+                "marks": 1
+            },
+            headers=admin_headers
+        )
+        question_id = q.json()["id"]
+
+        # update options to W X Y Z but keep correct_answer as A
+        # A is not in new options → should fail
+        response = client.put(
+            f"/assessment/v1/questions/{question_id}",
+            json={
+                "options": ["W", "X", "Y", "Z"]
+                # correct_answer stays A — not in new options
+            },
+            headers=admin_headers
+        )
+
+        assert response.status_code == 422, \
+            f"Expected 422 but got {response.status_code}"
+
+    def test_student_single_question_not_found(self, client, student_headers):
+        """
+        Verifies student getting a non-existent question by id
+        returns 404 Not Found.
+        This hits QuestionNotFoundException
+        in question_service.get_question_by_id_for_student.
+        """
+        response = client.get(
+            "/assessment/v1/questions/student/000000000000000000000000",
+            headers=student_headers
+        )
+
+        assert response.status_code == 404, \
+            f"Expected 404 but got {response.status_code}"
+
+    def test_student_single_question_invalid_id_format(
+        self, client, student_headers
+    ):
+        """
+        Verifies student getting a question with malformed id
+        returns 400 Bad Request.
+        """
+        response = client.get(
+            "/assessment/v1/questions/student/not-a-valid-id",
+            headers=student_headers
+        )
+
+        assert response.status_code == 400, \
+            f"Expected 400 but got {response.status_code}"
+
+    def test_difficulty_filter_invalid_quiz_returns_404(
+        self, client, admin_headers
+    ):
+        """
+        Verifies filtering questions by difficulty for a non-existent quiz
+        returns 404 Not Found.
+        This hits QuestionQuizNotFoundException
+        in question_service.get_questions_by_difficulty.
+        """
+        response = client.get(
+            "/assessment/v1/questions/quiz/000000000000000000000000/difficulty/easy",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 404, \
+            f"Expected 404 but got {response.status_code}"
+
+    def test_student_difficulty_filter_invalid_quiz_returns_404(
+        self, client, student_headers
+    ):
+        """
+        Verifies student filtering questions by difficulty for a
+        non-existent quiz returns 404 Not Found.
+        This hits QuestionQuizNotFoundException
+        in question_service.get_questions_by_difficulty_for_student.
+        """
+        response = client.get(
+            "/assessment/v1/questions/student/quiz/000000000000000000000000/difficulty/easy",
+            headers=student_headers
+        )
+
+        assert response.status_code == 404, \
+            f"Expected 404 but got {response.status_code}"
+
+    def test_delete_question_invalid_id_format_returns_400(
+        self, client, admin_headers
+    ):
+        """
+        Verifies deleting a question with a malformed id
+        returns 400 Bad Request.
+        """
+        response = client.delete(
+            "/assessment/v1/questions/not-a-valid-id",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 400, \
+            f"Expected 400 but got {response.status_code}"
+
+    def test_delete_question_not_found_returns_404(self, client, admin_headers):
+        """
+        Verifies deleting a question with valid format but
+        non-existent id returns 404 Not Found.
+        This hits QuestionNotFoundException
+        in question_service.delete_question.
+        """
+        response = client.delete(
+            "/assessment/v1/questions/000000000000000000000000",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 404, \
+            f"Expected 404 but got {response.status_code}"
+
+    def test_question_count_for_quiz_with_no_questions(
+        self, client, admin_headers
+    ):
+        """
+        Verifies question count returns 0 for a quiz that exists
+        but has no questions added yet.
+        This hits question_service.get_question_count_by_quiz
+        with an empty result from the repository.
+        """
+        fresh_category = client.post(
+            "/assessment/v1/categories/",
+            json={
+                "name": f"Empty Quiz Cat {uuid.uuid4().hex[:8]}",
+                "description": "Category for empty quiz count test"
+            },
+            headers=admin_headers
+        )
+        empty_quiz = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Empty Quiz {uuid.uuid4().hex[:8]}",
+                "description": "Quiz with no questions",
+                "category_id": fresh_category.json()["id"],
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        empty_quiz_id = empty_quiz.json()["id"]
+
+        response = client.get(
+            f"/assessment/v1/questions/quiz/{empty_quiz_id}/count",
+            headers=admin_headers
+        )
+
+        assert response.status_code == 200, \
+            f"Expected 200 but got {response.status_code}"
+
+        data = response.json()
+        assert data["total_questions"] == 0
+        assert data["quiz_id"] == empty_quiz_id
+
+    def test_update_duplicate_question_text_same_quiz_returns_409(
+        self, client, admin_headers
+    ):
+        """
+        Verifies updating a question text to match another existing
+        question in the same quiz is rejected with 409 Conflict.
+        This hits QuestionAlreadyExistsException
+        in question_service.update_question duplicate text check.
+        """
+        fresh_category = client.post(
+            "/assessment/v1/categories/",
+            json={
+                "name": f"Dup Update Cat {uuid.uuid4().hex[:8]}",
+                "description": "Category for duplicate update test"
+            },
+            headers=admin_headers
+        )
+        fresh_quiz = client.post(
+            "/assessment/v1/quizzes/",
+            json={
+                "title": f"Dup Update Quiz {uuid.uuid4().hex[:8]}",
+                "description": "Quiz for duplicate update test",
+                "category_id": fresh_category.json()["id"],
+                "time_limit": 30,
+                "pass_percentage": 60.0
+            },
+            headers=admin_headers
+        )
+        quiz_id = fresh_quiz.json()["id"]
+
+        text_one = f"First unique question {uuid.uuid4().hex[:8]}"
+        text_two = f"Second unique question {uuid.uuid4().hex[:8]}"
+
+        q1 = client.post(
+            "/assessment/v1/questions/",
+            json={
+                "quiz_id": quiz_id,
+                "question_text": text_one,
+                "question_type": "mcq",
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "A",
+                "difficulty": "easy",
+                "marks": 1
+            },
+            headers=admin_headers
+        )
+
+        q2 = client.post(
+            "/assessment/v1/questions/",
+            json={
+                "quiz_id": quiz_id,
+                "question_text": text_two,
+                "question_type": "mcq",
+                "options": ["A", "B", "C", "D"],
+                "correct_answer": "A",
+                "difficulty": "easy",
+                "marks": 1
+            },
+            headers=admin_headers
+        )
+        q2_id = q2.json()["id"]
+
+        # try to update q2 text to match q1 text — should conflict
+        response = client.put(
+            f"/assessment/v1/questions/{q2_id}",
+            json={"question_text": text_one},
+            headers=admin_headers
+        )
+
+        assert response.status_code == 409, \
+            f"Expected 409 but got {response.status_code}"

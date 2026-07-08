@@ -8,6 +8,7 @@ from app.routes.category_routes import router as category_router
 from app.routes.quiz_routes import router as quiz_router
 from app.routes.question_routes import router as question_router
 from app.routes.attempt_routes import router as attempt_router
+from app.routes.result_routes import router as result_router
 
 
 """
@@ -31,6 +32,7 @@ app.include_router(category_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(quiz_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(question_router, prefix=URL_PREFIX + API_VERSION)
 app.include_router(attempt_router, prefix=URL_PREFIX + API_VERSION)
+app.include_router(result_router, prefix=URL_PREFIX + API_VERSION) 
 
 
 @app.get("/")
