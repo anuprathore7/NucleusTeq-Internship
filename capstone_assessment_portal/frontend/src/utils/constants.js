@@ -35,6 +35,8 @@ export const ROUTES = {
   ADMIN_QUIZZES:    "/admin/quizzes",
   ADMIN_QUESTIONS:  "/admin/questions",
   ADMIN_RESULTS:    "/admin/results",
+  ADMIN_STUDENTS:    "/admin/students",
+  ADMIN_LEADERBOARD: "/admin/leaderboard",
 
   // student
   STUDENT_DASHBOARD: "/student/dashboard",
@@ -52,6 +54,7 @@ export const ENDPOINTS = {
   REGISTER: "/auth/register",
   ME:       "/auth/me",
   REFRESH:  "/auth/refresh",
+  PUBLIC_KEY: "/auth/public-key",
 
   // categories
   CATEGORIES:          "/categories",
