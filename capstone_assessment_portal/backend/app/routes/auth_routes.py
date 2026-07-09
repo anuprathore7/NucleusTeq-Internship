@@ -13,6 +13,7 @@ from app.schemas.request.auth_schema import (
     RefreshTokenSchema      # ADD THIS
 )
 
+
 router = APIRouter(
     prefix=AUTH_PREFIX,   # every route here starts with /auth
     tags=["Authentication"]  # groups these routes in Swagger UI
@@ -81,3 +82,17 @@ async def refresh_token(data: RefreshTokenSchema):
     """
     result = await auth_service.refresh_access_token(data.refresh_token)
     return result
+
+@router.get(
+    "/public-key",
+    status_code=status.HTTP_200_OK,
+    summary="Get RSA public key"
+)
+async def get_rsa_public_key():
+    """
+    Returns the RSA public key used by the frontend
+    to encrypt passwords before sending them to the server.
+    """
+
+    response = await auth_service.get_public_key()
+    return response

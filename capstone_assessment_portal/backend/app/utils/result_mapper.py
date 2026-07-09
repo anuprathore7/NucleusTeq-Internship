@@ -8,14 +8,6 @@ from app.schemas.response.result_response_schema import (
 
 
 def attempt_to_result_response(attempt: dict) -> ResultResponseSchema:
-    """
-    Converts a submitted attempt document into a full result response.
-
-    answer_breakdown contains correct_answer for each question.
-    This is safe to show now because attempt is already submitted.
-    """
-
-    # convert answer_breakdown list from attempt document
     breakdown = [
         AnswerBreakdownSchema(
             question_id=item["question_id"],
@@ -31,6 +23,7 @@ def attempt_to_result_response(attempt: dict) -> ResultResponseSchema:
 
     result = ResultResponseSchema(
         attempt_id=str(attempt["_id"]),
+        student_id=attempt["student_id"],
         quiz_id=attempt["quiz_id"],
         quiz_title=attempt["snapshot"]["title"],
         score=attempt["score"],
@@ -45,13 +38,9 @@ def attempt_to_result_response(attempt: dict) -> ResultResponseSchema:
 
 
 def attempt_to_result_summary(attempt: dict) -> ResultSummarySchema:
-    """
-    Converts a submitted attempt into a lightweight summary.
-    No answer_breakdown — just scores and pass/fail.
-    Used in list views for quick overview.
-    """
     result = ResultSummarySchema(
         attempt_id=str(attempt["_id"]),
+        student_id=attempt["student_id"],
         quiz_id=attempt["quiz_id"],
         quiz_title=attempt["snapshot"]["title"],
         score=attempt["score"],
@@ -61,7 +50,6 @@ def attempt_to_result_summary(attempt: dict) -> ResultSummarySchema:
         submitted_at=attempt["submitted_at"]
     )
     return result
-
 
 def attempts_to_result_summary_list(
     attempts: list[dict]
