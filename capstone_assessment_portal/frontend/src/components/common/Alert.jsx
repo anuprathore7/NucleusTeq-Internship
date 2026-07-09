@@ -59,9 +59,7 @@ const Alert = ({
         ${className}
       `}
     >
-      <p className="font-semibold mb-1">
-        {config.title}
-      </p>
+     
 
       <p className="leading-6">
         {message}
