@@ -17,6 +17,7 @@ from app.exceptions.auth_exceptions import (
     InvalidTokenException,
     UserNotFoundException
 )
+from app.utils.rsa_utils import PUBLIC_KEY_PATH, decrypt_password
 
 logger = get_logger(__name__)
 
@@ -44,7 +45,9 @@ class AuthService:
             logger.warning(f"Registration failed — username already exists: {data.username}")
             raise UserAlreadyExistsException()
 
-        hashed_pw = hash_password(data.password)
+        plain_password = decrypt_password(data.password)
+
+        hashed_pw = hash_password(plain_password)
 
         new_user = {
             **data.model_dump(),
@@ -70,8 +73,10 @@ class AuthService:
         if not user:
             logger.warning(f"Login failed — email not found: {data.email}")
             raise UserNotFoundException()
-
-        if not verify_password(data.password, user["password"]):
+        
+        plain_password = decrypt_password(data.password)
+        
+        if not verify_password(plain_password, user["password"]):
             logger.warning(f"Login failed — invalid password for email: {data.email}")
             raise InvalidCredentialsException()
 
@@ -131,3 +136,14 @@ class AuthService:
             "token_type": "bearer"
         }
         return result
+    
+    async def get_public_key(self) -> dict:
+        """
+        Return public key in PEM format.
+        """
+
+        with open(PUBLIC_KEY_PATH, "r") as file:
+            public_key = file.read()
+        response  = {"public_Key": public_key}
+
+        return response
