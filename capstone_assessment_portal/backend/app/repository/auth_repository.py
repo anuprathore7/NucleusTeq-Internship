@@ -13,7 +13,6 @@ from app.config.database import database
 class AuthRepository:
 
     def __init__(self):
-        # Point to the 'users' collection inside our database
         # MongoDB creates this collection automatically on first insert
         self.collection = database["users"]
 
