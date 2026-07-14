@@ -62,6 +62,12 @@ export const validateEmail = (email) => {
     return "Please enter a valid email address"
   }
 
+  /* Block purely numeric local-parts like "11@gmail.com" — require at least one letter */
+  const localPart = value.split("@")[0]
+  if (!/[a-zA-Z]/.test(localPart)) {
+    return "Email must include a name, not just numbers"
+  }
+
   return ""
 }
 
@@ -257,7 +263,7 @@ export const sanitizeUsername = (username) => {
 }
 /* Checks if any single character repeats 3 or more times in a row */
 const hasConsecutiveRepeats = (value) => {
-  return /(.)\1{2,}/.test(value)
+  return /(.)\1{4,}/.test(value)
 }
 
 /* Checks if the text has too little character variety to be meaningful,
