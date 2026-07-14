@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 
-# lifespan now lives in its own file — senior's feedback addressed
 from app.config.lifespan import lifespan
 from app.constants.url_prefix import URL_PREFIX, API_VERSION
 from app.routes.auth_routes import router as auth_router
@@ -22,7 +21,7 @@ main.py has exactly ONE job:
 app = FastAPI(
     title="Assessment Portal",
     version="1.0.0",
-    lifespan=lifespan       # imported from app/config/lifespan.py
+    lifespan=lifespan       
 )
 
 app.add_middleware(
