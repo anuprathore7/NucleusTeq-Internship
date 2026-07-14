@@ -12,7 +12,7 @@ from app.services.category_service import CategoryService
 from app.utils.auth_dependencies import require_admin, get_current_user
 from app.constants.url_prefix import CATEGORY_PREFIX
 
-# all routes in this file start with /categories
+
 router = APIRouter(
     prefix=CATEGORY_PREFIX,
     tags=["Categories"]

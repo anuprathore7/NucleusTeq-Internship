@@ -8,10 +8,10 @@ from app.schemas.response.quiz_response_schema import (
 from app.services.quiz_service import QuizService
 from app.utils.auth_dependencies import require_admin, get_current_user
 
-# all routes in this file start with /quizzes
+
 router = APIRouter(
     prefix="/quizzes",
-    tags=["Quizzes"]        # groups these routes in Swagger UI
+    tags=["Quizzes"]        
 )
 
 quiz_service = QuizService()

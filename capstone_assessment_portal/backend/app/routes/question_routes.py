@@ -117,9 +117,7 @@ async def get_question(
     result = await question_service.get_question_by_id(question_id)
     return result
 
-# ─────────────────────────────────────────────────────────────────────────
-# STUDENT ROUTES — correct_answer is never exposed in any of these
-# ─────────────────────────────────────────────────────────────────────────
+"""STUDENTS ROUTES"""
 
 @router.get(
     "/student/quiz/{quiz_id}",
