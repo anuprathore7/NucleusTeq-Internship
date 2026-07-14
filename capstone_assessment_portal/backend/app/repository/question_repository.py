@@ -124,17 +124,33 @@ class QuestionRepository:
 
     async def delete(self, id: str) -> None:
         """
-        Hard delete a question — permanently removes it from MongoDB.
-        No recovery possible after this operation.
+        Hard delete a single question — permanently removes it from MongoDB.
         """
         object_id = self._to_object_id(id)
         await self.collection.delete_one({"_id": object_id})
 
     async def count_by_quiz(self, quiz_id: str) -> int:
-        """
+        """"
         Count total active questions in a quiz.
         """
         result = await self.collection.count_documents({
             "quiz_id": quiz_id
         })
         return result
+
+    async def delete_by_quiz(self, quiz_id: str) -> int:
+        """
+        Hard deletes all questions belonging to a single quiz.
+        Returns the number of questions deleted.
+        """
+        result = await self.collection.delete_many({"quiz_id": quiz_id})
+        return result.deleted_count
+
+    async def delete_by_quiz_ids(self, quiz_ids: list[str]) -> int:
+        """
+        Hard deletes all questions across a set of quizzes —
+        used when cascading a category delete.
+        Returns the number of questions deleted.
+        """
+        result = await self.collection.delete_many({"quiz_id": {"$in": quiz_ids}})
+        return result.deleted_count
