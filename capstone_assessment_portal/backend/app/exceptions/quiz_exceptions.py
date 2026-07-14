@@ -4,8 +4,7 @@ from app.constants.message import (
     QUIZ_NOT_FOUND,
     QUIZ_ALREADY_EXISTS,
     QUIZ_INVALID_ID,
-    QUIZ_CATEGORY_NOT_FOUND,
-    QUIZ_HAS_QUESTIONS             
+    QUIZ_CATEGORY_NOT_FOUND
 )
 
 
@@ -45,15 +44,16 @@ class QuizCategoryNotFoundException(HTTPException):
         )
 
 
-class QuizHasQuestionsException(HTTPException):
+class QuizHasActiveAttemptsException(HTTPException):
     """
-    Raised when admin tries to delete a quiz that still
-    has questions linked to it.
-    Admin must delete all questions under this quiz first
-    before the quiz itself can be deleted.
+    Raised when this quiz has students currently attempting it.
+    Admin must pass force=true to override.
     """
-    def __init__(self):
+    def __init__(self, count: int):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,
-            detail=QUIZ_HAS_QUESTIONS
+            detail=(
+                f"Cannot delete quiz — {count} student(s) are currently "
+                f"attempting this quiz. Pass force=true to override."
+            )
         )
