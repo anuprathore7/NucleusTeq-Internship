@@ -146,10 +146,10 @@ class QuestionService:
         return result
 
     async def update_question(
-        self,
-        question_id: str,
-        data: UpdateQuestionSchema
-    ) -> QuestionResponseSchema:
+    self,
+    question_id: str,
+    data: UpdateQuestionSchema
+) -> QuestionResponseSchema:
         """
         Update an existing question.
         Validates correct_answer against final options and checks for duplicate text.
@@ -163,11 +163,15 @@ class QuestionService:
 
         final_options = data.options if data.options is not None \
             else existing_question["options"]
+        
+        # resolve the final correct_answer and validate it against the
+        # final options, regardless of which field(s) were actually changed.
+        final_correct_answer = data.correct_answer if data.correct_answer is not None \
+            else existing_question["correct_answer"]
 
-        if data.correct_answer is not None:
-            if data.correct_answer not in final_options:
-                logger.warning(f"Update failed — correct_answer not in options")
-                raise QuestionInvalidCorrectAnswerException()
+        if final_correct_answer not in final_options:
+            logger.warning(f"Update failed — correct_answer not in options")
+            raise QuestionInvalidCorrectAnswerException()
 
         if data.question_text:
             duplicate = await self.question_repo.find_by_text_and_quiz(

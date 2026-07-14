@@ -176,13 +176,6 @@ class QuizService:
     ) -> MessageResponseSchema:
         """
         Hard delete a quiz with cascade.
-
-        Flow:
-        1. Verify quiz exists
-        2. Check if any student has an in_progress attempt on this quiz —
-           block with 409 unless force=True
-        3. Delete all questions under this quiz
-        4. Delete the quiz itself
         """
         logger.info(f"Delete quiz attempt for id: {quiz_id} (force={force})")
 
