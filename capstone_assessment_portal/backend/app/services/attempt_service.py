@@ -200,6 +200,17 @@ class AttemptService:
                 f"Start attempt failed — quiz not found: {data.quiz_id}"
             )
             raise AttemptQuizNotFoundException()
+        # resume an existing in-progress attempt instead of creating a duplicate
+        existing = await self.attempt_repo.find_in_progress_attempt(student_id, data.quiz_id)
+        if existing:
+            if self._is_time_expired(existing):
+                logger.info(f"Existing attempt expired — auto submitting: {existing['_id']}")
+                await self._auto_submit(existing)
+                # falls through below — old attempt is now finished, a fresh one can be created
+            else:
+                logger.info(f"Resuming existing in-progress attempt: {existing['_id']}")
+                result = attempt_to_response(existing)
+                return result
 
         # check max attempts not exceeded
         attempt_count = await self.attempt_repo.count_attempts_by_student_and_quiz(

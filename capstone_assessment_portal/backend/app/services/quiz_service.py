@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from app.config.logger import get_logger
 from app.repository.quiz_repository import QuizRepository
 from app.repository.category_repository import CategoryRepository
+from app.repository.question_repository import QuestionRepository
+from app.repository.attempt_repository import AttemptRepository
 from app.schemas.request.quiz_schema import CreateQuizSchema, UpdateQuizSchema
 from app.schemas.response.quiz_response_schema import (
     QuizResponseSchema,
@@ -12,13 +14,10 @@ from app.exceptions.quiz_exceptions import (
     QuizNotFoundException,
     QuizAlreadyExistsException,
     QuizCategoryNotFoundException,
-    QuizHasQuestionsException 
+    QuizHasActiveAttemptsException
 )
 from app.utils.quiz_mapper import quiz_to_response, quizzes_to_response
 from app.schemas.response.message_response_schema import MessageResponseSchema
-from app.constants.message import QUIZ_DELETED
-from app.repository.question_repository import QuestionRepository
-        
 
 logger = get_logger(__name__)
 
@@ -26,13 +25,16 @@ logger = get_logger(__name__)
 class QuizService:
     """
     Contains all business logic for quiz operations.
-    Uses QuizRepository and CategoryRepository.
+    Uses QuizRepository, CategoryRepository, QuestionRepository and AttemptRepository.
     """
 
     def __init__(self):
         self.quiz_repo = QuizRepository()
         self.category_repo = CategoryRepository()
+        # needed for cascade delete — remove questions when a quiz is deleted
         self.question_repo = QuestionRepository()
+        # needed to check if any student is mid-attempt before deleting
+        self.attempt_repo = AttemptRepository()
 
     async def create_quiz(
         self,
@@ -76,9 +78,9 @@ class QuizService:
 
     async def get_all_quizzes(self) -> QuizListResponseSchema:
         """
-        Fetch all active quizzes for any logged in user.
+        Fetch all quizzes for any logged in user.
         """
-        logger.info("Fetching all active quizzes")
+        logger.info("Fetching all quizzes")
 
         quizzes = await self.quiz_repo.find_all()
         logger.info(f"Returned {len(quizzes)} quizzes")
@@ -167,27 +169,52 @@ class QuizService:
         result = quiz_to_response(updated_quiz)
         return result
 
-    async def delete_quiz(self, quiz_id: str) -> MessageResponseSchema:
+    async def delete_quiz(
+        self,
+        quiz_id: str,
+        force: bool = False
+    ) -> MessageResponseSchema:
         """
-        Hard delete a quiz after verifying no questions are linked to it.
+        Hard delete a quiz with cascade.
+
+        Flow:
+        1. Verify quiz exists
+        2. Check if any student has an in_progress attempt on this quiz —
+           block with 409 unless force=True
+        3. Delete all questions under this quiz
+        4. Delete the quiz itself
         """
-        logger.info(f"Delete quiz attempt for id: {quiz_id}")
+        logger.info(f"Delete quiz attempt for id: {quiz_id} (force={force})")
 
         existing_quiz = await self.quiz_repo.find_by_id(quiz_id)
         if not existing_quiz:
             logger.warning(f"Delete failed — quiz not found: {quiz_id}")
             raise QuizNotFoundException()
 
-        question_count = await self.question_repo.count_by_quiz(quiz_id)
-        if question_count > 0:
+        # safety check — don't wipe out a quiz a student is actively
+        # attempting, unless admin explicitly forces it
+        active_count = await self.attempt_repo.count_in_progress_by_quiz_ids([quiz_id])
+        if active_count and not force:
             logger.warning(
-                f"Delete failed — quiz {quiz_id} "
-                f"has {question_count} linked questions"
+                f"Delete blocked — {active_count} active attempt(s) on quiz: {quiz_id}"
             )
-            raise QuizHasQuestionsException()
+            raise QuizHasActiveAttemptsException(active_count)
 
+        # cascade — remove every question that belongs to this quiz first
+        deleted_questions = await self.question_repo.delete_by_quiz(quiz_id)
+
+        # then remove the quiz itself
         await self.quiz_repo.delete(quiz_id)
-        logger.info(f"Quiz hard deleted successfully: '{existing_quiz['title']}'")
 
-        result = MessageResponseSchema(message=QUIZ_DELETED)
+        logger.info(
+            f"Quiz hard deleted: '{existing_quiz['title']}' "
+            f"({deleted_questions} questions removed)"
+        )
+
+        result = MessageResponseSchema(
+            message=(
+                f"Quiz '{existing_quiz['title']}' and its {deleted_questions} "
+                f"question(s) deleted successfully"
+            )
+        )
         return result

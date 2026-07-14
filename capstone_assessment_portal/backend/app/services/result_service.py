@@ -1,5 +1,6 @@
 from app.config.logger import get_logger
 from app.repository.result_repository import ResultRepository
+from app.repository.auth_repository import AuthRepository
 from app.schemas.response.result_response_schema import (
     ResultResponseSchema,
     ResultSummaryListResponseSchema
@@ -28,6 +29,7 @@ class ResultService:
 
     def __init__(self):
         self.result_repo = ResultRepository()
+        self.auth_repo = AuthRepository()
 
     async def get_result_by_attempt(
         self,
@@ -41,13 +43,11 @@ class ResultService:
             f"Get result — attempt: {attempt_id}, student: {student_id}"
         )
 
-        # find submitted attempt
         attempt = await self.result_repo.find_submitted_by_attempt_id(
             attempt_id,
             student_id
         )
 
-        # handle not found cases
         if not attempt:
             logger.warning(
                 f"Result not found — attempt: {attempt_id}, "
@@ -55,12 +55,15 @@ class ResultService:
             )
             raise ResultNotFoundException()
 
+        # attach username for the response schema
+        username_map = await self.auth_repo.find_users_by_ids([attempt["student_id"]])
+        attempt["username"] = username_map.get(attempt["student_id"], "Unknown")
+
         logger.info(
             f"Result found — attempt: {attempt_id}, "
             f"score: {attempt['score']}/{attempt['total_marks']}"
         )
 
-        # return full result with breakdown
         result = attempt_to_result_response(attempt)
         return result
 
@@ -71,15 +74,18 @@ class ResultService:
         """
         Fetch all results for the current student.
         Returns summary list — no breakdown, just scores.
-
-        Used for student result history page where student
-        can see all their past quiz performances at a glance.
         """
         logger.info(f"Get my results — student: {student_id}")
 
         attempts = await self.result_repo.find_all_submitted_by_student(
             student_id
         )
+
+        student_ids = [a["student_id"] for a in attempts]
+        username_map = await self.auth_repo.find_users_by_ids(student_ids)
+        for a in attempts:
+            a["username"] = username_map.get(a["student_id"], "Unknown")
+
         logger.info(
             f"Returned {len(attempts)} results for student: {student_id}"
         )
@@ -93,13 +99,16 @@ class ResultService:
         """
         Fetch all results across all students.
         Admin only — used for the result dashboard.
-
-        Returns summary list — admin gets overview of
-        all quiz performances across all students.
         """
         logger.info("Admin fetching all results")
 
         attempts = await self.result_repo.find_all_submitted()
+
+        student_ids = [a["student_id"] for a in attempts]
+        username_map = await self.auth_repo.find_users_by_ids(student_ids)
+        for a in attempts:
+            a["username"] = username_map.get(a["student_id"], "Unknown")
+
         logger.info(f"Returned {len(attempts)} total results for admin")
 
         result = attempts_to_result_summary_list(attempts)
@@ -113,12 +122,17 @@ class ResultService:
         Fetch all results for a specific quiz.
         Admin only — used to see how all students performed
         on a particular quiz.
-
-        Returns summary list sorted by submitted_at descending.
         """
         logger.info(f"Admin fetching results for quiz: {quiz_id}")
 
         attempts = await self.result_repo.find_all_submitted_by_quiz(quiz_id)
+
+        # this was the missing piece — the actual bug in your screenshot
+        student_ids = [a["student_id"] for a in attempts]
+        username_map = await self.auth_repo.find_users_by_ids(student_ids)
+        for a in attempts:
+            a["username"] = username_map.get(a["student_id"], "Unknown")
+
         logger.info(
             f"Returned {len(attempts)} results for quiz: {quiz_id}"
         )
