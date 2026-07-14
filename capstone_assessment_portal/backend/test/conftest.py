@@ -1,6 +1,10 @@
+import base64
 import uuid
 import pytest
 from fastapi.testclient import TestClient
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
 from main import app
 
 
@@ -24,7 +28,50 @@ def client():
 
 
 @pytest.fixture(scope="session")
-def admin_token(client):
+def rsa_public_key(client):
+    """
+    Fetches the RSA public key exposed by GET /auth/public-key and
+    loads it into a usable key object. The backend now requires every
+    password sent to /auth/register and /auth/login to be RSA-encrypted
+    with this key and base64-encoded — plain text passwords fail with
+    a decryption error, not a validation error.
+    """
+    response = client.get("/assessment/v1/auth/public-key")
+
+    assert response.status_code == 200, \
+        f"Failed to fetch RSA public key. Response: {response.json()}"
+
+    # note: the backend's response key is "public_Key" (capital K) — must match exactly
+    public_key_pem = response.json()["public_Key"]
+
+    return load_pem_public_key(public_key_pem.encode("utf-8"))
+
+
+@pytest.fixture(scope="session")
+def encrypt_password(rsa_public_key):
+    """
+    Returns a helper function that RSA-encrypts and base64-encodes a
+    plain text password, exactly matching what the frontend does
+    before sending passwords to the backend. Use this in any test
+    that needs a password to successfully pass through
+    app.utils.rsa_utils.decrypt_password() on the server.
+
+    Usage inside a test:
+        json={"email": "...", "password": encrypt_password("Test@1234")}
+    """
+
+    def _encrypt(plain_password: str) -> str:
+        encrypted_bytes = rsa_public_key.encrypt(
+            plain_password.encode("utf-8"),
+            padding.PKCS1v15()
+        )
+        return base64.b64encode(encrypted_bytes).decode("utf-8")
+
+    return _encrypt
+
+
+@pytest.fixture(scope="session")
+def admin_token(client, encrypt_password):
     """
     Logs in as admin once for the entire test session.
     scope="session" = login happens once, token reused everywhere.
@@ -33,7 +80,7 @@ def admin_token(client):
         "/assessment/v1/auth/login",
         json={
             "email": "anup@gmail.com",
-            "password": "Anup@123"
+            "password": encrypt_password("Anup@123")
         }
     )
 
@@ -44,7 +91,7 @@ def admin_token(client):
 
 
 @pytest.fixture(scope="session")
-def student_token(client):
+def student_token(client, encrypt_password):
     """
     Registers and logs in a student once for the entire test session.
     Uses uuid so it never conflicts with existing data.
@@ -59,7 +106,7 @@ def student_token(client):
         json={
             "username": unique_username,
             "email": unique_email,
-            "password": "Test@1234"
+            "password": encrypt_password("Test@1234")
         }
     )
 
@@ -67,7 +114,7 @@ def student_token(client):
         "/assessment/v1/auth/login",
         json={
             "email": unique_email,
-            "password": "Test@1234"
+            "password": encrypt_password("Test@1234")
         }
     )
 
