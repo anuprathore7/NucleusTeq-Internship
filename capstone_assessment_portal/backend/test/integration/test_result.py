@@ -7,7 +7,6 @@ class TestResultAPI:
     Integration tests for the Result API.
     """
 
-    # shared state across tests
     category_id = None
     quiz_id = None
     question_1_id = None
@@ -457,25 +456,24 @@ class TestResultAPI:
             f"Expected 404 but got {response.status_code}"
 
     def test_student_cannot_see_another_students_result(
-        self, client
-    ):
+    self, client, encrypt_password   # add encrypt_password here
+):
         """
         Verifies student cannot access another student's result.
         Creates second student, tries to access first student's result.
         """
-        # register and login second student
         second_email = f"result_test_{uuid.uuid4().hex[:8]}@test.com"
         client.post(
             "/assessment/v1/auth/register",
             json={
                 "username": f"result_test_{uuid.uuid4().hex[:8]}",
                 "email": second_email,
-                "password": "Test@1234"
+                "password": encrypt_password("Test@1234")   # was plain "Test@1234"
             }
         )
         login = client.post(
             "/assessment/v1/auth/login",
-            json={"email": second_email, "password": "Test@1234"}
+            json={"email": second_email, "password": encrypt_password("Test@1234")}   # was plain "Test@1234"
         )
         second_headers = {
             "Authorization": f"Bearer {login.json()['access_token']}"
