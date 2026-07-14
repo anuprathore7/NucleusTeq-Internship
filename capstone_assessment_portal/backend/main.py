@@ -9,6 +9,7 @@ from app.routes.quiz_routes import router as quiz_router
 from app.routes.question_routes import router as question_router
 from app.routes.attempt_routes import router as attempt_router
 from app.routes.result_routes import router as result_router
+from fastapi.middleware.cors import CORSMiddleware
 
 
 """
@@ -24,6 +25,15 @@ app = FastAPI(
     lifespan=lifespan       # imported from app/config/lifespan.py
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ── Register all routers ──────────────────────────────────────────────
 # Base prefix for all routes: /assessment/v1
 
