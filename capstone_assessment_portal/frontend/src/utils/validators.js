@@ -8,6 +8,38 @@
  *  Same validation everywhere
  */
 
+/* Login Email Validation */
+
+export const validateLoginEmail = (email) => {
+
+  const value = email.trim().toLowerCase()
+
+  if (!value) {
+    return "Email is required"
+  }
+
+  const emailRegex =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!emailRegex.test(value)) {
+    return "Please enter a valid email address"
+  }
+
+  return ""
+}
+
+
+/* Login Password Validation */
+
+export const validateLoginPassword = (password) => {
+
+  if (!password) {
+    return "Password is required"
+  }
+
+  return ""
+}
+
 
 /*Email Validation */
 
@@ -222,4 +254,131 @@ export const sanitizeEmail = (email) => {
 
 export const sanitizeUsername = (username) => {
   return username.trim()
+}
+/* Checks if any single character repeats 3 or more times in a row */
+const hasConsecutiveRepeats = (value) => {
+  return /(.)\1{2,}/.test(value)
+}
+
+/* Checks if the text has too little character variety to be meaningful,
+   catches things like "ababab", "xyxyxy", "aaaa1111" */
+const hasLowVariety = (value) => {
+  const cleaned = value.replace(/\s+/g, "")
+  if (cleaned.length < 6) return false
+  const uniqueChars = new Set(cleaned.toLowerCase()).size
+  const ratio = uniqueChars / cleaned.length
+  return ratio < 0.35
+}
+
+/* Combines both checks — used everywhere isRepetitive was used before */
+const isRepetitive = (value) => {
+  const cleaned = value.trim()
+  if (cleaned.length < 2) return false
+  if (/^(.)\1+$/.test(cleaned)) return true
+  if (hasConsecutiveRepeats(cleaned)) return true
+  if (hasLowVariety(cleaned)) return true
+  return false
+}
+/**
+ * Checks if a string is meaningful text.
+ * Must contain at least one letter.
+ * Rejects strings like "111", "!!!!", "123 456".
+ */
+const hasMeaningfulContent = (value) => {
+  return /[a-zA-Z]/.test(value)
+}
+
+/**
+ * Category name validation
+ */
+export const validateCategoryName = (value) => {
+  if (!value || !value.trim()) return "Category name is required"
+  if (value.trim().length < 3) return "Name must be at least 3 characters"
+  if (value.trim().length > 100) return "Name cannot exceed 100 characters"
+  if (isRepetitive(value.trim())) return "Please enter a meaningful category name"
+  if (!hasMeaningfulContent(value)) return "Name must contain at least one letter"
+  return ""
+}
+
+/**
+ * Category description validation
+ */
+export const validateCategoryDescription = (value) => {
+  if (!value || !value.trim()) return "Description is required"
+  if (value.trim().length < 5) return "Description must be at least 5 characters"
+  if (value.trim().length > 500) return "Description cannot exceed 500 characters"
+  if (isRepetitive(value.trim())) return "Please enter a meaningful description"
+  if (!hasMeaningfulContent(value)) return "Description must contain at least one letter"
+  return ""
+}
+
+/**
+ * Quiz title validation
+ */
+export const validateQuizTitle = (value) => {
+  if (!value || !value.trim()) return "Quiz title is required"
+  if (value.trim().length < 3) return "Title must be at least 3 characters"
+  if (value.trim().length > 200) return "Title cannot exceed 200 characters"
+  if (isRepetitive(value.trim())) return "Please enter a meaningful quiz title"
+  if (!hasMeaningfulContent(value)) return "Title must contain at least one letter"
+  return ""
+}
+
+/**
+ * Quiz description validation
+ */
+export const validateQuizDescription = (value) => {
+  if (!value || !value.trim()) return "Description is required"
+  if (value.trim().length < 5) return "Description must be at least 5 characters"
+  if (value.trim().length > 1000) return "Description cannot exceed 1000 characters"
+  if (isRepetitive(value.trim())) return "Please enter a meaningful description"
+  if (!hasMeaningfulContent(value)) return "Description must contain at least one letter"
+  return ""
+}
+
+/**
+ * Quiz time limit validation
+ */
+export const validateTimeLimit = (value) => {
+  if (!value && value !== 0) return "Time limit is required"
+  const num = Number(value)
+  if (isNaN(num)) return "Time limit must be a number"
+  if (num <= 0) return "Time limit must be greater than 0"
+  if (num > 300) return "Time limit cannot exceed 300 minutes"
+  return ""
+}
+
+/**
+ * Quiz pass percentage validation
+ */
+export const validatePassPercentage = (value) => {
+  if (!value && value !== 0) return "Pass percentage is required"
+  const num = Number(value)
+  if (isNaN(num)) return "Must be a number"
+  if (num < 1) return "Must be at least 1%"
+  if (num > 100) return "Cannot exceed 100%"
+  return ""
+}
+
+/**
+ * Question text validation
+ */
+export const validateQuestionText = (value) => {
+  if (!value || !value.trim()) return "Question text is required"
+  if (value.trim().length < 5) return "Question must be at least 5 characters"
+  if (value.trim().length > 1000) return "Question cannot exceed 1000 characters"
+  if (isRepetitive(value.trim())) return "Please enter a meaningful question"
+  if (!hasMeaningfulContent(value)) return "Question must contain at least one letter"
+  return ""
+}
+
+/**
+ * Question option validation
+ */
+export const validateOption = (value, index) => {
+  if (!value || !value.trim()) return `Option ${index + 1} is required`
+  if (value.trim().length < 1) return `Option ${index + 1} is required`
+  if (isRepetitive(value.trim()) && value.trim().length > 3)
+    return `Option ${index + 1} must be meaningful`
+  return ""
 }

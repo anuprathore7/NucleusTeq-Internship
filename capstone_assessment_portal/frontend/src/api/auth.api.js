@@ -6,22 +6,45 @@
 
 import axiosInstance from "./axios"
 import { ENDPOINTS } from "../utils/constants"
+import { encryptPassword } from "../utils/rsa";
 
 export const loginAPI = async (email, password) => {
-  const response = await axiosInstance.post(ENDPOINTS.LOGIN, {
-    email,
-    password
-  })
+
+  const encryptedPassword =
+    await encryptPassword(password)
+
+  const response = await axiosInstance.post(
+    ENDPOINTS.LOGIN,
+    {
+      email,
+      password: encryptedPassword
+    }
+  )
+
   return response.data
+
 }
 
-export const registerAPI = async (username, email, password) => {
-  const response = await axiosInstance.post(ENDPOINTS.REGISTER, {
-    username,
-    email,
-    password
-  })
+export const registerAPI = async (
+  username,
+  email,
+  password
+) => {
+
+  const encryptedPassword =
+    await encryptPassword(password)
+
+  const response = await axiosInstance.post(
+    ENDPOINTS.REGISTER,
+    {
+      username,
+      email,
+      password: encryptedPassword
+    }
+  )
+
   return response.data
+
 }
 
 export const getMeAPI = async () => {

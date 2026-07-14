@@ -3,6 +3,8 @@ myenv/
 venv/
 env/
 
+keys/
+
 # Python Cache
 __pycache__/
 *.pyc

@@ -9,189 +9,155 @@
  *
  */
 
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
-import { loginAPI } from "../../api/auth.api"
-import { useAuth } from "../../context/AuthContext"
+import { loginAPI } from "../../api/auth.api";
+import { useAuth } from "../../context/AuthContext";
 
 import {
-  validateEmail,
-  validatePassword,
-} from "../../utils/validators"
+  validateLoginEmail,
+  validateLoginPassword,
+} from "../../utils/validators";
 
-import { getErrorMessage } from "../../utils/helpers"
+import { getErrorMessage } from "../../utils/helpers";
 
-import Input from "../../components/common/Input"
-import Button from "../../components/common/Button"
-import Alert from "../../components/common/Alert"
+import Input from "../../components/common/Input";
+import Button from "../../components/common/Button";
+import Alert from "../../components/common/Alert";
 
 const Login = () => {
-  const { login } = useAuth()
+  const { login } = useAuth();
 
   const [form, setForm] = useState({
     email: "",
     password: "",
-  })
+  });
 
   const [errors, setErrors] = useState({
     email: "",
     password: "",
-  })
+  });
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
-  const [apiError, setApiError] = useState("")
+  const [apiError, setApiError] = useState("");
 
-  
   /* Update field */
- 
 
   const handleChange = (field) => (e) => {
-    const value = e.target.value
+    const value = e.target.value;
 
     setForm((prev) => ({
       ...prev,
       [field]: value,
-    }))
+    }));
 
     // Clear field error while typing
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
         [field]: "",
-      }))
+      }));
     }
 
     // Clear backend error
     if (apiError) {
-      setApiError("")
+      setApiError("");
     }
-  }
+  };
 
-  
   /* Validate one field */
- 
 
   const validateField = (field) => {
-    let error = ""
+    let error = "";
 
     switch (field) {
       case "email":
-        error = validateEmail(form.email)
-        break
+        error = validateLoginEmail(form.email);
+        break;
 
       case "password":
-        error = validatePassword(form.password)
-        break
+        error = validateLoginPassword(form.password);
+        break;
 
       default:
-        break
+        break;
     }
 
     setErrors((prev) => ({
       ...prev,
       [field]: error,
-    }))
-  }
-
+    }));
+  };
 
   /* Validate form*/
 
-
   const validateForm = () => {
     const newErrors = {
-      email: validateEmail(form.email),
-      password: validatePassword(form.password),
-    }
+      email: validateLoginEmail(form.email),
+      password: validateLoginPassword(form.password),
+    };
 
-    setErrors(newErrors)
+    setErrors(newErrors);
 
-    return Object.values(newErrors).every(
-      (error) => error === ""
-    )
-  }
+    return Object.values(newErrors).every((error) => error === "");
+  };
 
- 
   /* Submit */
 
-
   const handleSubmit = async (event) => {
-    event.preventDefault()
+    event.preventDefault();
 
-    setApiError("")
+    setApiError("");
 
     if (!validateForm()) {
-      return
+      return;
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
 
-      const response = await loginAPI(
-        form.email,
-        form.password
-      )
+      const response = await loginAPI(form.email, form.password);
 
-      login(response)
-
+      login(response);
     } catch (error) {
+      console.log("Status:", error?.response?.status);
+      console.log("Response:", error?.response?.data);
 
-      setApiError(
-        getErrorMessage(
-          error,
-          "Login failed. Please check your credentials."
-        )
-      )
-
+      if (error?.response?.status === 401) {
+        setApiError("Invalid email or password.");
+      } else {
+        setApiError(
+          getErrorMessage(error, "Something went wrong. Please try again."),
+        );
+      }
     } finally {
-
-      setLoading(false)
-
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-
       <div className="w-full max-w-md">
-
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-
-         
           {/* Header*/}
-          
 
           <div className="text-center mb-8">
-
             <h1 className="text-3xl font-bold text-slate-800">
               Assessment Portal
             </h1>
 
-            <p className="mt-2 text-slate-500">
-              Sign in to continue
-            </p>
-
+            <p className="mt-2 text-slate-500">Sign in to continue</p>
           </div>
 
           {/* API Error */}
-         
 
-          <Alert
-            type="error"
-            message={apiError}
-          />
+          <Alert type="error" message={apiError} />
 
-          
           {/* Form */}
-    
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5 mt-5"
-            noValidate
-          >
-
+          <form onSubmit={handleSubmit} className="space-y-5 mt-5" noValidate>
             <Input
               label="Email Address"
               name="email"
@@ -218,26 +184,15 @@ const Login = () => {
               required
             />
 
-            <Button
-              type="submit"
-              loading={loading}
-              fullWidth
-              size="lg"
-            >
+            <Button type="submit" loading={loading} fullWidth size="lg">
               Sign In
             </Button>
-
           </form>
 
-         
           {/* Footer*/}
-         
 
           <div className="mt-8 text-center text-sm">
-
-            <span className="text-slate-500">
-              Don't have an account?
-            </span>
+            <span className="text-slate-500">Don't have an account?</span>
 
             <Link
               to="/register"
@@ -245,15 +200,11 @@ const Login = () => {
             >
               Create account
             </Link>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;
