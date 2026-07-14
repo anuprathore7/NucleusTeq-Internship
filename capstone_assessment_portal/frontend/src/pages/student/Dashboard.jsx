@@ -1,25 +1,18 @@
-/**
- * Student Dashboard
- *
- * Shows student's personal stats and recent quiz results.
- * Stats: total attempts, passed, failed, average score.
- */
 
 import { useState, useEffect } from "react"
+import { useNavigate }         from "react-router-dom"
 
-import { getMyResultsAPI } from "../../api/result.api"
+import { getMyResultsAPI }  from "../../api/result.api"
 import { getMyAttemptsAPI } from "../../api/attempt.api"
 
 import PageHeader from "../../components/common/PageHeader"
-import StatCard from "../../components/common/StatCard"
-import Table from "../../components/common/Table"
-import Badge from "../../components/common/Badge"
-import Button from "../../components/common/Button"
-import { formatDateTime } from "../../utils/helpers"
-import { useNavigate } from "react-router-dom"
-import { ROUTES } from "../../utils/constants"
+import StatCard   from "../../components/common/StatCard"
+import Table      from "../../components/common/Table"
+import Badge      from "../../components/common/Badge"
+import Button     from "../../components/common/Button"
 
-/* Icons */
+import { formatDateTime } from "../../utils/helpers"
+import { ROUTES }         from "../../utils/constants"
 
 const AttemptIcon = () => (
   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,26 +38,24 @@ const ScoreIcon = () => (
   </svg>
 )
 
-/* Recent results table columns */
-
-const resultColumns = [
+const recentColumns = [
   {
-    key: "quiz_title",
-    label: "Quiz Name"
+    key:   "quiz_title",
+    label: "Quiz"
   },
   {
-    key: "score",
-    label: "Score",
+    key:    "score",
+    label:  "Score",
     render: (value, row) => `${value} / ${row.total_marks}`
   },
   {
-    key: "percentage",
-    label: "Percentage",
+    key:    "percentage",
+    label:  "Percentage",
     render: (value) => `${value}%`
   },
   {
-    key: "passed",
-    label: "Status",
+    key:    "passed",
+    label:  "Status",
     render: (value) => (
       <Badge
         label={value ? "Passed" : "Failed"}
@@ -73,8 +64,8 @@ const resultColumns = [
     )
   },
   {
-    key: "submitted_at",
-    label: "Date",
+    key:    "submitted_at",
+    label:  "Date",
     render: (value) => formatDateTime(value)
   }
 ]
@@ -94,9 +85,9 @@ const StudentDashboard = () => {
   const [loading, setLoading]             = useState(true)
 
   useEffect(() => {
+
     const fetchData = async () => {
       try {
-
         const resultsData = await getMyResultsAPI()
         const results     = resultsData.results || []
 
@@ -104,48 +95,37 @@ const StudentDashboard = () => {
         const failed  = results.length - passed
 
         const avgScore = results.length > 0
-          ? Math.round(
-              results.reduce((sum, r) => sum + r.percentage, 0) / results.length
-            )
+          ? Math.round(results.reduce((sum, r) => sum + r.percentage, 0) / results.length)
           : 0
 
-        setStats({
-          totalAttempts: results.length,
-          passed,
-          failed,
-          avgScore
-        })
+        setStats({ totalAttempts: results.length, passed, failed, avgScore })
+        setRecentResults(results.slice(0, 4))
 
-        /* Show only 5 most recent */
-        setRecentResults(results.slice(0, 5))
-
-      } catch (error) {
-        console.error("Student dashboard fetch error:", error)
+      } catch {
+        /** silently fail */
       } finally {
         setLoading(false)
       }
     }
 
     fetchData()
+
   }, [])
 
   return (
-    <div>
+    <div className="flex flex-col gap-8">
 
       <PageHeader
         title="My Dashboard"
         subtitle="Track your quiz performance"
         action={
-          <Button
-            onClick={() => navigate(ROUTES.STUDENT_QUIZZES)}
-          >
-            Browse Quizzes
+          <Button onClick={() => navigate("/student/categories")}>
+            Browse Categories
           </Button>
         }
       />
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
         <StatCard
           label="Total Attempts"
@@ -177,31 +157,26 @@ const StudentDashboard = () => {
 
       </div>
 
-      {/* Recent Results */}
       <div>
 
         <div className="flex items-center justify-between mb-4">
-
-          <h2 className="text-base font-semibold text-slate-800">
-            Recent Results
-          </h2>
-
+          <h2 className="text-base font-semibold text-slate-800">Recent Results</h2>
           {recentResults.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate(ROUTES.STUDENT_HISTORY)}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
             >
-              View all
-            </button>
+              View All
+            </Button>
           )}
-
         </div>
 
         <Table
-          columns={resultColumns}
+          columns={recentColumns}
           rows={recentResults}
           loading={loading}
-          emptyMessage="You have not completed any quizzes yet. Start one now!"
+          emptyMessage="No quizzes completed yet. Browse categories to start!"
         />
 
       </div>
