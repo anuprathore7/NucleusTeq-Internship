@@ -1,15 +1,19 @@
 import { useState, useEffect, useMemo } from "react"
 
-import { getQuizzesAPI }                                        from "../../api/quiz.api"
-import { getAllResultsAdminAPI, getResultsByQuizAdminAPI }       from "../../api/result.api"
+import { getQuizzesAPI }                                   from "../../api/quiz.api"
+import { getAllResultsAdminAPI, getResultsByQuizAdminAPI }  from "../../api/result.api"
 
-import PageHeader from "../../components/common/PageHeader"
-import Table      from "../../components/common/Table"
-import Input      from "../../components/common/Input"
-import Badge      from "../../components/common/Badge"
-import EmptyState from "../../components/common/EmptyState"
+import PageHeader  from "../../components/common/PageHeader"
+import Table       from "../../components/common/Table"
+import Pagination  from "../../components/common/Pagination"
+import Input       from "../../components/common/Input"
+import Badge       from "../../components/common/Badge"
+import EmptyState  from "../../components/common/EmptyState"
 
 import { formatDateTime } from "../../utils/helpers"
+
+/* Rows shown per page across the results table */
+const PAGE_SIZE = 10
 
 const AdminResults = () => {
 
@@ -18,6 +22,7 @@ const AdminResults = () => {
   const [selectedQuiz, setSelectedQuiz] = useState("")
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState("")
+  const [page, setPage]               = useState(1)
 
   const loadAll = async () => {
     try {
@@ -48,7 +53,7 @@ const AdminResults = () => {
       try {
         const data = await getQuizzesAPI()
         setQuizzes(data.quizzes || [])
-      } catch { /** silently fail */ }
+      } catch { /* silently fail */ }
       loadAll()
     }
     init()
@@ -66,17 +71,26 @@ const AdminResults = () => {
     const q = search.trim().toLowerCase()
     if (!q) return results
     return results.filter((r) =>
-      r.quiz_title.toLowerCase().includes(q)
+      r.quiz_title.toLowerCase().includes(q) ||
+      (r.username || "").toLowerCase().includes(q)
     )
   }, [search, results])
 
+  /* Reset to page 1 whenever search or the quiz filter changes */
+  useEffect(() => { setPage(1) }, [search, selectedQuiz])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filtered.slice(start, start + PAGE_SIZE)
+  }, [filtered, page])
+
   const columns = [
     {
-      key:    "student_id",
+      key:    "username",
       label:  "Student",
       render: (value) => (
-        <span className="font-mono text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-medium">
-          {value?.slice(-8).toUpperCase()}
+        <span className="text-sm font-medium text-slate-800">
+          {value || "Unknown"}
         </span>
       )
     },
@@ -119,7 +133,7 @@ const AdminResults = () => {
         subtitle="All student quiz submissions"
       />
 
-      {/** Filters */}
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
 
         <div className="w-full sm:max-w-xs">
@@ -137,7 +151,7 @@ const AdminResults = () => {
 
         <div className="w-full sm:max-w-xs">
           <Input
-            placeholder="Search by quiz name..."
+            placeholder="Search by student or quiz..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -151,12 +165,20 @@ const AdminResults = () => {
           description={`No results match "${search}"`}
         />
       ) : (
-        <Table
-          columns={columns}
-          rows={filtered}
-          loading={loading}
-          emptyMessage="No results available"
-        />
+        <>
+          <Table
+            columns={columns}
+            rows={paginated}
+            loading={loading}
+            emptyMessage="No results available"
+          />
+          <Pagination
+            currentPage={page}
+            totalItems={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </>
       )}
 
     </div>

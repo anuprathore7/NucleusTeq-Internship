@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom"
 
 import { getQuizzesAPI }                      from "../../api/quiz.api"
 import {
@@ -8,20 +9,24 @@ import {
   deleteQuestionAPI
 } from "../../api/question.api"
 
-import PageHeader from "../../components/common/PageHeader"
-import Table      from "../../components/common/Table"
-import Button     from "../../components/common/Button"
-import Input      from "../../components/common/Input"
-import Alert      from "../../components/common/Alert"
-import Modal      from "../../components/common/Modal"
-import Badge      from "../../components/common/Badge"
-import EmptyState from "../../components/common/EmptyState"
-import Select     from "../../components/common/Select"
+import PageHeader  from "../../components/common/PageHeader"
+import Table       from "../../components/common/Table"
+import Pagination  from "../../components/common/Pagination"
+import Button      from "../../components/common/Button"
+import Input       from "../../components/common/Input"
+import Alert       from "../../components/common/Alert"
+import Modal       from "../../components/common/Modal"
+import Badge       from "../../components/common/Badge"
+import EmptyState  from "../../components/common/EmptyState"
+import Select      from "../../components/common/Select"
 
 import {
   validateQuestionText,
   validateOption
 } from "../../utils/validators"
+
+/* Rows shown per page on the questions table */
+const PAGE_SIZE = 10
 
 const TYPES = [
   { value: "mcq",        label: "Multiple Choice (MCQ)" },
@@ -36,8 +41,17 @@ const DIFFICULTIES = [
 
 const difficultyVariant = { easy: "success", medium: "warning", hard: "error" }
 
+/* Checks whether a question with the same text already exists in this quiz,
+   case-insensitive and trimmed, excluding the question currently being edited */
+const isDuplicateQuestionText = (text, existingQuestions, excludeId) => {
+  const cleaned = text.trim().toLowerCase()
+  return existingQuestions.some((q) =>
+    q.id !== excludeId && q.question_text.trim().toLowerCase() === cleaned
+  )
+}
+
 /* Shared question form for create and edit. Validates all fields before submitting. */
-const QuestionForm = ({ initial, quizId, onSubmit, onCancel, loading, error }) => {
+const QuestionForm = ({ initial, quizId, existingQuestions, onSubmit, onCancel, loading, error }) => {
 
   const [form, setForm] = useState({
     question_text:  initial?.question_text  || "",
@@ -81,7 +95,11 @@ const QuestionForm = ({ initial, quizId, onSubmit, onCancel, loading, error }) =
     const e = {}
 
     const textErr = validateQuestionText(form.question_text)
-    if (textErr) e.question_text = textErr
+    if (textErr) {
+      e.question_text = textErr
+    } else if (isDuplicateQuestionText(form.question_text, existingQuestions, initial?.id)) {
+      e.question_text = "A question with this exact text already exists in this quiz"
+    }
 
     if (!isTrueFalse) {
       form.options.forEach((opt, i) => {
@@ -133,7 +151,7 @@ const QuestionForm = ({ initial, quizId, onSubmit, onCancel, loading, error }) =
         value={form.question_text}
         onChange={updateField("question_text")}
         error={errors.question_text}
-        hint="Must be meaningful. No repetitive text like '111' or 'abc abc'."
+        hint="Must be meaningful and unique within this quiz."
         required
         maxLength={1000}
       />
@@ -230,12 +248,21 @@ const DeleteConfirm = ({ onConfirm, onCancel, loading, error }) => (
 
 const AdminQuestions = () => {
 
+  const navigate        = useNavigate()
+  const location          = useLocation()
+  const [searchParams]    = useSearchParams()
+
+  /* When arriving from Quizzes -> "Questions", this pre-selects the quiz below */
+  const quizIdFromUrl  = searchParams.get("quiz")
+  const quizTitleFromUrl = location.state?.quizTitle
+
   const [quizzes, setQuizzes]               = useState([])
-  const [selectedQuizId, setSelectedQuizId] = useState("")
+  const [selectedQuizId, setSelectedQuizId] = useState(quizIdFromUrl || "")
   const [questions, setQuestions]           = useState([])
   const [loading, setLoading]               = useState(false)
   const [quizLoading, setQuizLoading]       = useState(true)
   const [search, setSearch]                 = useState("")
+  const [page, setPage]                     = useState(1)
   const [createOpen, setCreateOpen]         = useState(false)
   const [editTarget, setEditTarget]         = useState(null)
   const [deleteTarget, setDeleteTarget]     = useState(null)
@@ -268,6 +295,14 @@ const AdminQuestions = () => {
     }
   }
 
+  /* If we arrived with a quiz already chosen (from the Quizzes page),
+     load its questions immediately — no manual selection needed */
+  useEffect(() => {
+    if (quizIdFromUrl) {
+      loadQuestions(quizIdFromUrl)
+    }
+  }, [quizIdFromUrl])
+
   const handleQuizChange = (e) => {
     const id = e.target.value
     setSelectedQuizId(id)
@@ -283,6 +318,14 @@ const AdminQuestions = () => {
       q_.question_text.toLowerCase().includes(q)
     )
   }, [search, questions])
+
+  /* Reset to page 1 whenever the search term or selected quiz changes */
+  useEffect(() => { setPage(1) }, [search, selectedQuizId])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filtered.slice(start, start + PAGE_SIZE)
+  }, [filtered, page])
 
   const handleCreate = async (payload) => {
     try {
@@ -388,14 +431,25 @@ const AdminQuestions = () => {
     <div>
 
       <PageHeader
-        title="Questions"
+        title={quizTitleFromUrl ? `${quizTitleFromUrl} — Questions` : "Questions"}
         subtitle="Manage questions per quiz"
         action={
-          selectedQuizId && (
-            <Button onClick={() => { setFormError(""); setCreateOpen(true) }}>
-              + Add Question
-            </Button>
-          )
+          <div className="flex items-center gap-2">
+            {quizIdFromUrl && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate("/admin/quizzes")}
+              >
+                Back to Quizzes
+              </Button>
+            )}
+            {selectedQuizId && (
+              <Button onClick={() => { setFormError(""); setCreateOpen(true) }}>
+                + Add Question
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -425,18 +479,32 @@ const AdminQuestions = () => {
           title="No quiz selected"
           description="Select a quiz above to view and manage its questions."
         />
-      ) : (
-        <Table
-          columns={columns}
-          rows={filtered}
-          loading={loading}
-          emptyMessage="No questions yet. Add one to get started."
+      ) : filtered.length === 0 && search ? (
+        <EmptyState
+          title="No questions found"
+          description={`No questions match "${search}"`}
         />
+      ) : (
+        <>
+          <Table
+            columns={columns}
+            rows={paginated}
+            loading={loading}
+            emptyMessage="No questions yet. Add one to get started."
+          />
+          <Pagination
+            currentPage={page}
+            totalItems={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </>
       )}
 
       <Modal open={createOpen} title="Add Question" onClose={() => setCreateOpen(false)}>
         <QuestionForm
           quizId={selectedQuizId}
+          existingQuestions={questions}
           onSubmit={handleCreate}
           onCancel={() => setCreateOpen(false)}
           loading={formLoading}
@@ -448,6 +516,7 @@ const AdminQuestions = () => {
         <QuestionForm
           initial={editTarget}
           quizId={selectedQuizId}
+          existingQuestions={questions}
           onSubmit={handleEdit}
           onCancel={() => setEditTarget(null)}
           loading={formLoading}

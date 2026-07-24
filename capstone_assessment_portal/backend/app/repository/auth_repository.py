@@ -13,7 +13,6 @@ from app.config.database import database
 class AuthRepository:
 
     def __init__(self):
-        # Point to the 'users' collection inside our database
         # MongoDB creates this collection automatically on first insert
         self.collection = database["users"]
 
@@ -57,3 +56,12 @@ class AuthRepository:
             {"_id": inserted.inserted_id}
         )
         return result
+    async def find_users_by_ids(self, user_ids: list[str]) -> dict:
+        """
+        Fetch multiple users by their IDs in one query.
+        Returns a dict mapping id (string) -> username, for fast lookup.
+        """
+        object_ids = [ObjectId(uid) for uid in set(user_ids)]
+        cursor = self.collection.find({"_id": {"$in": object_ids}})
+        users = await cursor.to_list(None)
+        return {str(u["_id"]): u["username"] for u in users}

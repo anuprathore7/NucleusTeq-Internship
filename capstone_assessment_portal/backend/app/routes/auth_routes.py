@@ -1,5 +1,4 @@
-# Routes = HTTP layer only.
-# Each function here maps one URL + HTTP method to one service call.
+
 
 from fastapi import APIRouter, Depends, status
 
@@ -10,22 +9,22 @@ from app.constants.url_prefix import AUTH_PREFIX
 from app.schemas.request.auth_schema import (
     RegisterUserSchema,
     LoginSchema,
-    RefreshTokenSchema      # ADD THIS
+    RefreshTokenSchema     
 )
 
 
 router = APIRouter(
-    prefix=AUTH_PREFIX,   # every route here starts with /auth
-    tags=["Authentication"]  # groups these routes in Swagger UI
+    prefix=AUTH_PREFIX,   
+    tags=["Authentication"]  
 )
 
-# one shared service instance for this router
+
 auth_service = AuthService()
 
 
 @router.post(
     "/register",
-    status_code=status.HTTP_201_CREATED,  # 201 = something was created (not 200)
+    status_code=status.HTTP_201_CREATED,  
     summary="Register a new user"
 )
 async def register(user_data: RegisterUserSchema):

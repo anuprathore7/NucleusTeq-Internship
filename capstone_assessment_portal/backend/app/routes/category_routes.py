@@ -12,7 +12,7 @@ from app.services.category_service import CategoryService
 from app.utils.auth_dependencies import require_admin, get_current_user
 from app.constants.url_prefix import CATEGORY_PREFIX
 
-# all routes in this file start with /categories
+
 router = APIRouter(
     prefix=CATEGORY_PREFIX,
     tags=["Categories"]
@@ -46,29 +46,30 @@ async def create_category(
     status_code=status.HTTP_200_OK,
     response_model=CategoryListResponseSchema,
     summary="Get all categories",
-    description="Returns all active categories. Accessible by any logged in user."
+    description="Returns all categories. Accessible by any logged in user."
 )
 async def get_categories(
     current_user: dict = Depends(get_current_user)  # any logged in user
 ):
     """
-    Returns list of all active categories with total count.
+    Returns list of all categories with total count.
     Both admin and student can access this.
     """
     result = await category_service.get_all_categories()
     return result
 
-@router.get(""
-    "/{category_id}" , 
+
+@router.get(
+    "/{category_id}",
     status_code=status.HTTP_200_OK,
     summary="Get a category",
     description="Return a single category accessible by only logged in user",
-    response_model= CategoryResponseSchema
-      )
+    response_model=CategoryResponseSchema
+)
 async def get_a_category(
-    category_id : str , 
-    current_user : dict = Depends(get_current_user)
-    ):
+    category_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     result = await category_service.get_a_category(category_id)
     return result
 
@@ -98,14 +99,19 @@ async def update_category(
     "/{category_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete a category",
-    description="Admin only. Hard deletes a category "
+    description=(
+        "Admin only. Hard deletes a category with cascade — removes all "
+        "quizzes under it, then the category."
+    )
 )
 async def delete_category(
     category_id: str,
+    force: bool = False,   
     current_user: dict = Depends(require_admin)
 ):
     """
-    Hard delete — category is permanently removed.
+    Hard delete with cascade — category, its quizzes, and their questions
+    are all permanently removed in one operation.
     """
-    result = await category_service.delete_category(category_id)
+    result = await category_service.delete_category(category_id, force)
     return result

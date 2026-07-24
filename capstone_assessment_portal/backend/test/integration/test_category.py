@@ -3,14 +3,8 @@ import pytest
 
 """
 Category Integration Tests
-
-Tests the full API flow: Request → Route → Service → Repository → MongoDB → Response
-
-Covers SRS test cases:
-CAT-001, CAT-002, CAT-003, CAT-004, CAT-005, CAT-006, CAT-007, SEC-001
 """
 
-# shared state between tests in this file — set by create test, used by others
 created_category_id = None
 created_category_name = None
 

@@ -1,16 +1,7 @@
-/**
- * Modal
- *
- * Reusable dialog overlay.
- * Accepts open state, title, onClose and children.
- * Closes when clicking the backdrop or X button.
- */
-
 import { useEffect } from "react"
 
-const Modal = ({ open, title, onClose, children }) => {
+const Modal = ({ open, title, onClose, children, size = "md" }) => {
 
-  /* Close on Escape key */
   useEffect(() => {
     if (!open) return
     const onKey = (e) => { if (e.key === "Escape") onClose() }
@@ -20,23 +11,24 @@ const Modal = ({ open, title, onClose, children }) => {
 
   if (!open) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+  const widthClass = size === "lg" ? "max-w-3xl" : "max-w-lg"
 
-      {/* Backdrop */}
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Dialog */}
-      <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
+      <div className={`
+        relative z-10 w-full ${widthClass} max-h-[85vh]
+        bg-white rounded-2xl shadow-xl border border-slate-200
+        flex flex-col overflow-hidden
+      `}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
           <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
@@ -45,11 +37,9 @@ const Modal = ({ open, title, onClose, children }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-5">
+        <div className="px-6 py-5 overflow-y-auto">
           {children}
         </div>
 

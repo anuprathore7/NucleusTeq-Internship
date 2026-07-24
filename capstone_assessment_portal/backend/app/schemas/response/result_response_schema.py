@@ -26,6 +26,7 @@ class ResultResponseSchema(BaseModel):
 
     attempt_id: str
     student_id: str
+    username: str
     quiz_id: str
     quiz_title: str
     score: int
@@ -57,6 +58,7 @@ class ResultSummarySchema(BaseModel):
 
     attempt_id: str
     student_id: str
+    username: str
     quiz_id: str
     quiz_title: str
     score: int

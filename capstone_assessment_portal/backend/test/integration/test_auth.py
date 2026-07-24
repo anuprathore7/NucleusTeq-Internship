@@ -8,7 +8,7 @@ class TestAuthAPI:
     """
 
 
-    def test_auth_002_register_student_success(self, client):
+    def test_auth_002_register_student_success(self, client, encrypt_password):
         """
         AUTH-002: Verifies student registration with valid details
         creates the account and returns the expected response shape.
@@ -23,7 +23,7 @@ class TestAuthAPI:
             json={
                 "username": unique_username,
                 "email": unique_email,
-                "password": "Student@1234"
+                "password": encrypt_password("Student@1234")
             }
         )
 
@@ -36,7 +36,7 @@ class TestAuthAPI:
         assert data["role"] == "student"
         assert "password" not in data
 
-    def test_register_duplicate_email_returns_409(self, client):
+    def test_register_duplicate_email_returns_409(self, client, encrypt_password):
         """
         Edge case: registering with an email that already exists
         must return 409 Conflict, not 500 or 200.
@@ -49,7 +49,7 @@ class TestAuthAPI:
             json={
                 "username": f"first_{uuid.uuid4().hex[:8]}",
                 "email": unique_email,
-                "password": "Test@1234"
+                "password": encrypt_password("Test@1234")
             }
         )
 
@@ -59,7 +59,7 @@ class TestAuthAPI:
             json={
                 "username": f"second_{uuid.uuid4().hex[:8]}",
                 "email": unique_email,
-                "password": "Test@1234"
+                "password": encrypt_password("Test@1234")
             }
         )
 
@@ -72,7 +72,8 @@ class TestAuthAPI:
     def test_register_invalid_email_format_returns_422(self, client):
         """
         Edge case: email field does not follow a valid email format.
-        Pydantic EmailStr validation rejects this before service runs.
+        Pydantic EmailStr validation rejects this before service runs,
+        so the password never reaches decryption — no encryption needed here.
         """
         response = client.post(
             "/assessment/v1/auth/register",
@@ -88,8 +89,10 @@ class TestAuthAPI:
 
     def test_register_password_too_short_returns_422(self, client):
         """
-        Edge case: password shorter than 8 characters.
-        Pydantic min_length=8 rejects this before service runs.
+        Edge case: password fails the password strength validators
+        (uppercase/lowercase/digit/special character rules) on the schema.
+        This is rejected by Pydantic before the service or decryption
+        ever runs, so no encryption is needed here either.
         """
         response = client.post(
             "/assessment/v1/auth/register",
@@ -103,7 +106,7 @@ class TestAuthAPI:
         assert response.status_code == 422, \
             f"Expected 422 but got {response.status_code}"
 
-    def test_auth_003_login_admin_success(self, client):
+    def test_auth_003_login_admin_success(self, client, encrypt_password):
         """
         AUTH-003: Verifies admin can login with valid credentials
         and receives access_token, refresh_token and user details.
@@ -113,7 +116,7 @@ class TestAuthAPI:
             "/assessment/v1/auth/login",
             json={
                 "email": "anup@gmail.com",
-                "password": "Anup@123"
+                "password": encrypt_password("Anup@123")
             }
         )
 
@@ -131,7 +134,7 @@ class TestAuthAPI:
             "Admin login must return role: admin"
         assert data["user"]["email"] == "anup@gmail.com"
 
-    def test_auth_004_login_student_success(self, client):
+    def test_auth_004_login_student_success(self, client, encrypt_password):
         """
         AUTH-004: Verifies student can login with valid credentials
         and receives both tokens. Registers a fresh student first
@@ -144,7 +147,7 @@ class TestAuthAPI:
             json={
                 "username": f"auth004_{uuid.uuid4().hex[:8]}",
                 "email": unique_email,
-                "password": "Student@1234"
+                "password": encrypt_password("Student@1234")
             }
         )
 
@@ -152,7 +155,7 @@ class TestAuthAPI:
             "/assessment/v1/auth/login",
             json={
                 "email": unique_email,
-                "password": "Student@1234"
+                "password": encrypt_password("Student@1234")
             }
         )
 
@@ -164,17 +167,18 @@ class TestAuthAPI:
         assert "refresh_token" in data
         assert data["user"]["role"] == "student"
 
-    def test_auth_005_login_wrong_password_returns_401(self, client):
+    def test_auth_005_login_wrong_password_returns_401(self, client, encrypt_password):
         """
         AUTH-005: Verifies logging in with correct email but wrong
-        password returns 401 Unauthorized. Same error for wrong
-        password and wrong email — prevents user enumeration.
+        password returns 401 Unauthorized. The wrong password must
+        still be validly RSA-encrypted so it decrypts successfully
+        server-side and only fails the hash comparison, not decryption.
         """
         response = client.post(
             "/assessment/v1/auth/login",
             json={
                 "email": "anup@gmail.com",
-                "password": "WrongPassword@999"
+                "password": encrypt_password("WrongPassword@999")
             }
         )
 
@@ -188,6 +192,8 @@ class TestAuthAPI:
         """
         AUTH-006: Verifies logging in with an email that does not
         exist in the database returns 404 User Not Found.
+        The service checks for the user BEFORE attempting to decrypt
+        the password, so no encryption is needed for this test.
         """
         response = client.post(
             "/assessment/v1/auth/login",
@@ -253,7 +259,7 @@ class TestAuthAPI:
         assert "password" not in data, \
             "Password must never be exposed in any response"
 
-    def test_refresh_token_returns_new_access_token(self, client):
+    def test_refresh_token_returns_new_access_token(self, client, encrypt_password):
         """
         Verifies that a valid refresh token can be exchanged for a
         new access token without requiring the user to login again.
@@ -263,7 +269,7 @@ class TestAuthAPI:
             "/assessment/v1/auth/login",
             json={
                 "email": "anup@gmail.com",
-                "password": "Anup@123"
+                "password": encrypt_password("Anup@123")
             }
         )
         refresh_token = login_response.json()["refresh_token"]

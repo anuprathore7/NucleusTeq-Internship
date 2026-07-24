@@ -1,16 +1,20 @@
 import { useState, useEffect, useMemo } from "react"
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom"
+import { ListChecks } from "lucide-react"
 
-import { getCategoriesAPI }                                         from "../../api/category.api"
-import { getQuizzesAPI, createQuizAPI, updateQuizAPI, deleteQuizAPI } from "../../api/quiz.api"
+import { getCategoriesAPI }                                                                from "../../api/category.api"
+import { getQuizzesAPI, getQuizzesByCategoryAPI, createQuizAPI, updateQuizAPI, deleteQuizAPI } from "../../api/quiz.api"
 
-import PageHeader from "../../components/common/PageHeader"
-import Table      from "../../components/common/Table"
-import Button     from "../../components/common/Button"
-import Input      from "../../components/common/Input"
-import Alert      from "../../components/common/Alert"
-import Modal      from "../../components/common/Modal"
-import Badge      from "../../components/common/Badge"
-import EmptyState from "../../components/common/EmptyState"
+import PageHeader  from "../../components/common/PageHeader"
+import Table       from "../../components/common/Table"
+import Pagination  from "../../components/common/Pagination"
+import Button      from "../../components/common/Button"
+import Input       from "../../components/common/Input"
+import Alert       from "../../components/common/Alert"
+import Modal       from "../../components/common/Modal"
+import Badge       from "../../components/common/Badge"
+import EmptyState  from "../../components/common/EmptyState"
+import Select      from "../../components/common/Select"
 
 import {
   validateQuizTitle,
@@ -21,18 +25,30 @@ import {
 
 import { formatDateTime } from "../../utils/helpers"
 
-/**
- * Quiz form used for both create and edit.
- */
-const QuizForm = ({ initial, categories, onSubmit, onCancel, loading, error }) => {
+/* Rows shown per page across the quizzes table */
+const PAGE_SIZE = 10
 
- const [form, setForm] = useState({
-  title:           initial?.title           || "",
-  description:     initial?.description     || "",
-  category_id:     initial?.category_id     || "",
-  time_limit:      initial?.time_limit != null ? String(initial.time_limit) : "",
-  pass_percentage: initial?.pass_percentage != null ? String(initial.pass_percentage) : ""
-})
+/* Checks whether a quiz with the same title already exists in the same
+   category, case-insensitive and trimmed, excluding the quiz being edited */
+const isDuplicateQuizTitle = (title, categoryId, existingQuizzes, excludeId) => {
+  const cleaned = title.trim().toLowerCase()
+  return existingQuizzes.some((q) =>
+    q.id !== excludeId &&
+    q.category_id === categoryId &&
+    q.title.trim().toLowerCase() === cleaned
+  )
+}
+
+/* Quiz form used for both create and edit */
+const QuizForm = ({ initial, categories, existingQuizzes, onSubmit, onCancel, loading, error }) => {
+
+  const [form, setForm] = useState({
+    title:           initial?.title           || "",
+    description:     initial?.description     || "",
+    category_id:     initial?.category_id     || "",
+    time_limit:      initial?.time_limit != null ? String(initial.time_limit) : "",
+    pass_percentage: initial?.pass_percentage != null ? String(initial.pass_percentage) : ""
+  })
 
   const [errors, setErrors] = useState({})
 
@@ -49,6 +65,13 @@ const QuizForm = ({ initial, categories, onSubmit, onCancel, loading, error }) =
       time_limit:      validateTimeLimit(form.time_limit),
       pass_percentage: validatePassPercentage(form.pass_percentage)
     }
+
+    if (!e.title && !e.category_id) {
+      if (isDuplicateQuizTitle(form.title, form.category_id, existingQuizzes, initial?.id)) {
+        e.title = "A quiz with this title already exists in this category"
+      }
+    }
+
     setErrors(e)
     return Object.values(e).every((v) => !v)
   }
@@ -76,7 +99,7 @@ const QuizForm = ({ initial, categories, onSubmit, onCancel, loading, error }) =
         value={form.title}
         onChange={update("title")}
         error={errors.title}
-        hint="Must be meaningful text with at least one letter."
+        hint="Must be meaningful and unique within the selected category."
         required
         maxLength={200}
       />
@@ -92,33 +115,15 @@ const QuizForm = ({ initial, categories, onSubmit, onCancel, loading, error }) =
         maxLength={1000}
       />
 
-      {/** Category select */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-slate-700">
-          Category <span className="text-red-500">*</span>
-        </label>
-        <select
-          value={form.category_id}
-          onChange={update("category_id")}
-          className={`
-            w-full px-4 py-2.5 text-sm rounded-lg border bg-white
-            text-slate-900 outline-none transition duration-200
-            focus:ring-2 focus:border-transparent
-            ${errors.category_id
-              ? "border-red-400 focus:ring-red-400"
-              : "border-slate-200 focus:ring-primary-500"
-            }
-          `}
-        >
-          <option value="">Select a category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        {errors.category_id && (
-          <p className="text-xs text-red-500">{errors.category_id}</p>
-        )}
-      </div>
+      <Select
+        label="Category"
+        value={form.category_id}
+        onChange={update("category_id")}
+        options={categories.map((c) => ({ value: c.id, label: c.name }))}
+        error={errors.category_id}
+        placeholder="Select a category"
+        required
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <Input
@@ -154,16 +159,14 @@ const QuizForm = ({ initial, categories, onSubmit, onCancel, loading, error }) =
   )
 }
 
-/**
- * Delete confirm modal body.
- */
+/* Delete confirmation modal body */
 const DeleteConfirm = ({ quiz, onConfirm, onCancel, loading, error }) => (
   <div className="flex flex-col gap-4">
     {error && <Alert type="error" message={error} />}
     <p className="text-sm text-slate-600">
       Delete{" "}
       <span className="font-semibold text-slate-900">"{quiz?.title}"</span>?
-      This will fail if questions are still linked to it.
+      This will also remove every question linked to it.
     </p>
     <div className="flex justify-end gap-3">
       <Button variant="secondary" onClick={onCancel} disabled={loading}>Cancel</Button>
@@ -174,10 +177,18 @@ const DeleteConfirm = ({ quiz, onConfirm, onCancel, loading, error }) => (
 
 const AdminQuizzes = () => {
 
+  const navigate        = useNavigate()
+  const location         = useLocation()
+  const [searchParams]   = useSearchParams()
+
+  const categoryIdFilter   = searchParams.get("category")
+  const categoryNameFilter = location.state?.categoryName
+
   const [quizzes, setQuizzes]       = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState("")
+  const [page, setPage]             = useState(1)
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -188,19 +199,25 @@ const AdminQuizzes = () => {
     try {
       setLoading(true)
       const [quizData, catData] = await Promise.all([
-        getQuizzesAPI(),
+        categoryIdFilter ? getQuizzesByCategoryAPI(categoryIdFilter) : getQuizzesAPI(),
         getCategoriesAPI()
       ])
       setQuizzes(quizData.quizzes       || [])
       setCategories(catData.categories  || [])
     } catch {
-      /** silently fail */
+      /* silently fail */
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { loadData() }, [categoryIdFilter])
+
+  const categoryMap = useMemo(() => {
+    const map = {}
+    categories.forEach((c) => { map[c.id] = c.name })
+    return map
+  }, [categories])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -209,6 +226,13 @@ const AdminQuizzes = () => {
       quiz.title.toLowerCase().includes(q)
     )
   }, [search, quizzes])
+
+  useEffect(() => { setPage(1) }, [search, categoryIdFilter])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return filtered.slice(start, start + PAGE_SIZE)
+  }, [filtered, page])
 
   const handleCreate = async (payload) => {
     try {
@@ -252,12 +276,25 @@ const AdminQuizzes = () => {
     }
   }
 
+  const handleViewQuestions = (quiz) => {
+    navigate(`/admin/questions?quiz=${quiz.id}`, {
+      state: { quizTitle: quiz.title }
+    })
+  }
+
   const columns = [
     {
       key:    "title",
       label:  "Quiz Title",
       render: (value) => (
         <span className="font-medium text-slate-900">{value}</span>
+      )
+    },
+    {
+      key:    "category_id",
+      label:  "Category",
+      render: (value) => (
+        <span className="text-slate-600 text-sm">{categoryMap[value] || "—"}</span>
       )
     },
     {
@@ -281,7 +318,23 @@ const AdminQuizzes = () => {
       key:    "actions",
       label:  "Actions",
       render: (_, row) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+
+          {/* Distinct styling on purpose — this is the most-used action on this
+              page, so it should stand out from the plain Edit/Delete pair */}
+          <button
+            onClick={() => handleViewQuestions(row)}
+            className="
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
+              text-sm font-medium text-primary-600 bg-primary-50
+              hover:bg-primary-100 hover:text-primary-700
+              transition-colors
+            "
+          >
+            <ListChecks size={15} />
+            Questions
+          </button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -305,12 +358,23 @@ const AdminQuizzes = () => {
     <div>
 
       <PageHeader
-        title="Quizzes"
-        subtitle={`${quizzes.length} quizzes total`}
+        title={categoryNameFilter ? `${categoryNameFilter} — Quizzes` : "Quizzes"}
+        subtitle={`${quizzes.length} quiz${quizzes.length !== 1 ? "es" : ""} total`}
         action={
-          <Button onClick={() => { setFormError(""); setCreateOpen(true) }}>
-            + New Quiz
-          </Button>
+          <div className="flex items-center gap-2">
+            {categoryIdFilter && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate("/admin/categories")}
+              >
+                Back to Categories
+              </Button>
+            )}
+            <Button onClick={() => { setFormError(""); setCreateOpen(true) }}>
+              + New Quiz
+            </Button>
+          </div>
         }
       />
 
@@ -325,17 +389,26 @@ const AdminQuizzes = () => {
       {!loading && filtered.length === 0 && search ? (
         <EmptyState title="No results" description={`No quizzes match "${search}"`} />
       ) : (
-        <Table
-          columns={columns}
-          rows={filtered}
-          loading={loading}
-          emptyMessage="No quizzes yet. Create one to get started."
-        />
+        <>
+          <Table
+            columns={columns}
+            rows={paginated}
+            loading={loading}
+            emptyMessage="No quizzes yet. Create one to get started."
+          />
+          <Pagination
+            currentPage={page}
+            totalItems={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </>
       )}
 
       <Modal open={createOpen} title="Create Quiz" onClose={() => setCreateOpen(false)}>
         <QuizForm
           categories={categories}
+          existingQuizzes={quizzes}
           onSubmit={handleCreate}
           onCancel={() => setCreateOpen(false)}
           loading={formLoading}
@@ -347,6 +420,7 @@ const AdminQuizzes = () => {
         <QuizForm
           initial={editTarget}
           categories={categories}
+          existingQuizzes={quizzes}
           onSubmit={handleEdit}
           onCancel={() => setEditTarget(null)}
           loading={formLoading}

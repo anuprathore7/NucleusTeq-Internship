@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 
 import {
   getCategoriesAPI,
@@ -39,7 +40,7 @@ const fetchCategoryStats = async (categoryId) => {
           const qData = await getQuestionsByQuizAPI(quiz.id)
           questionCount += qData.questions?.length || 0
         } catch {
-          /** skip failed quiz */
+          /* skip failed quiz */
         }
       })
     )
@@ -52,11 +53,12 @@ const fetchCategoryStats = async (categoryId) => {
 
 /**
  * Category card — shows name, description, quiz count, question count.
+ * "View Quizzes" navigates to the Quizzes page pre-filtered to this category.
  */
-const CategoryCard = ({ category, stats, onEdit, onDelete }) => (
+const CategoryCard = ({ category, stats, onEdit, onDelete, onViewQuizzes }) => (
   <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-4 hover:shadow-md transition-shadow">
 
-    {/** Icon + name */}
+    {/* Icon + name */}
     <div className="flex items-start justify-between gap-3">
 
       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -75,7 +77,7 @@ const CategoryCard = ({ category, stats, onEdit, onDelete }) => (
 
     </div>
 
-    {/** Stats */}
+    {/* Stats */}
     <div className="flex items-center gap-4 border-t border-slate-100 pt-3">
       <div className="flex items-center gap-1.5">
         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +97,17 @@ const CategoryCard = ({ category, stats, onEdit, onDelete }) => (
       </div>
     </div>
 
-    {/** Actions */}
+    {/* View Quizzes — takes admin straight to this category's quizzes */}
+    <Button
+      variant="secondary"
+      size="sm"
+      fullWidth
+      onClick={() => onViewQuizzes(category)}
+    >
+      View Quizzes
+    </Button>
+
+    {/* Edit / Delete */}
     <div className="flex items-center gap-2">
       <Button
         variant="secondary"
@@ -196,7 +208,7 @@ const DeleteConfirm = ({ category, onConfirm, onCancel, loading, error }) => (
     <p className="text-sm text-slate-600">
       Are you sure you want to delete{" "}
       <span className="font-semibold text-slate-900">"{category?.name}"</span>?
-      This will fail if quizzes are linked to it.
+      This will also remove every quiz and question linked to it.
     </p>
     <div className="flex justify-end gap-3">
       <Button variant="secondary" onClick={onCancel} disabled={loading}>Cancel</Button>
@@ -206,6 +218,8 @@ const DeleteConfirm = ({ category, onConfirm, onCancel, loading, error }) => (
 )
 
 const AdminCategories = () => {
+
+  const navigate = useNavigate()
 
   const [categories, setCategories] = useState([])
   const [statsMap, setStatsMap]     = useState({})
@@ -224,7 +238,7 @@ const AdminCategories = () => {
       const cats = data.categories || []
       setCategories(cats)
 
-      /** Load stats for all categories in parallel */
+      /* Load stats for all categories in parallel */
       const statsEntries = await Promise.all(
         cats.map(async (cat) => {
           const stats = await fetchCategoryStats(cat.id)
@@ -234,7 +248,7 @@ const AdminCategories = () => {
       setStatsMap(Object.fromEntries(statsEntries))
 
     } catch {
-      /** silently fail */
+      /* silently fail */
     } finally {
       setLoading(false)
     }
@@ -294,6 +308,13 @@ const AdminCategories = () => {
     }
   }
 
+  /* Sends admin to the Quizzes page, pre-filtered to this category */
+  const handleViewQuizzes = (category) => {
+    navigate(`/admin/quizzes?category=${category.id}`, {
+      state: { categoryName: category.name }
+    })
+  }
+
   return (
     <div>
 
@@ -307,7 +328,7 @@ const AdminCategories = () => {
         }
       />
 
-      {/** Search */}
+      {/* Search */}
       <div className="mb-6 max-w-sm">
         <Input
           placeholder="Search by name or description..."
@@ -316,7 +337,7 @@ const AdminCategories = () => {
         />
       </div>
 
-      {/** Cards grid */}
+      {/* Cards grid */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Spinner size="lg" />
@@ -346,12 +367,13 @@ const AdminCategories = () => {
               stats={statsMap[cat.id]}
               onEdit={(c) => { setFormError(""); setEditTarget(c) }}
               onDelete={(c) => { setFormError(""); setDeleteTarget(c) }}
+              onViewQuizzes={handleViewQuizzes}
             />
           ))}
         </div>
       )}
 
-      {/** Create Modal */}
+      {/* Create Modal */}
       <Modal
         open={createOpen}
         title="Create Category"
@@ -365,7 +387,7 @@ const AdminCategories = () => {
         />
       </Modal>
 
-      {/** Edit Modal */}
+      {/* Edit Modal */}
       <Modal
         open={!!editTarget}
         title="Edit Category"
@@ -380,7 +402,7 @@ const AdminCategories = () => {
         />
       </Modal>
 
-      {/** Delete Modal */}
+      {/* Delete Modal */}
       <Modal
         open={!!deleteTarget}
         title="Delete Category"

@@ -24,6 +24,7 @@ def attempt_to_result_response(attempt: dict) -> ResultResponseSchema:
     result = ResultResponseSchema(
         attempt_id=str(attempt["_id"]),
         student_id=attempt["student_id"],
+        username=attempt.get("username", "Unknown"),
         quiz_id=attempt["quiz_id"],
         quiz_title=attempt["snapshot"]["title"],
         score=attempt["score"],
@@ -41,6 +42,7 @@ def attempt_to_result_summary(attempt: dict) -> ResultSummarySchema:
     result = ResultSummarySchema(
         attempt_id=str(attempt["_id"]),
         student_id=attempt["student_id"],
+        username=attempt.get("username", "Unknown"),
         quiz_id=attempt["quiz_id"],
         quiz_title=attempt["snapshot"]["title"],
         score=attempt["score"],

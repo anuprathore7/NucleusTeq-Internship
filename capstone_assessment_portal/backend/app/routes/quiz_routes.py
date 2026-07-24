@@ -8,10 +8,10 @@ from app.schemas.response.quiz_response_schema import (
 from app.services.quiz_service import QuizService
 from app.utils.auth_dependencies import require_admin, get_current_user
 
-# all routes in this file start with /quizzes
+
 router = APIRouter(
     prefix="/quizzes",
-    tags=["Quizzes"]        # groups these routes in Swagger UI
+    tags=["Quizzes"]        
 )
 
 quiz_service = QuizService()
@@ -41,13 +41,13 @@ async def create_quiz(
     status_code=status.HTTP_200_OK,
     response_model=QuizListResponseSchema,
     summary="Get all quizzes",
-    description="Returns all active quizzes. Accessible by any logged in user."
+    description="Returns all quizzes. Accessible by any logged in user."
 )
 async def get_all_quizzes(
     current_user: dict = Depends(get_current_user)  # any logged in user
 ):
     """
-    Returns all active quizzes with total count.
+    Returns all quizzes with total count.
     Students use this to browse available quizzes.
     """
     result = await quiz_service.get_all_quizzes()
@@ -68,10 +68,6 @@ async def get_quizzes_by_category(
     """
     Students and admins can filter quizzes by category.
     Useful for the category detail page on the frontend.
-
-    This route is placed BEFORE /{quiz_id} intentionally.
-    If we put /{quiz_id} first, FastAPI might try to match
-    'category' as a quiz_id — always put specific paths before dynamic ones.
     """
     result = await quiz_service.get_quizzes_by_category(category_id)
     return result
@@ -121,15 +117,20 @@ async def update_quiz(
     "/{quiz_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete a quiz",
-    description="Admin only. Hard deletes a quiz ."
+    description=(
+        "Admin only. Hard deletes a quiz with cascade — removes all its "
+        "questions first, then the quiz. Blocked with 409 if a student has "
+        "an in_progress attempt, unless force=true is passed."
+    )
 )
 async def delete_quiz(
     quiz_id: str,
+    force: bool = False,  
     current_user: dict = Depends(require_admin)
 ):
     """
-    Hard delete — quiz is permanently removed.
-    Admins can only delete quizzes that have no questions linked to them.
+    Hard delete with cascade — quiz and all its questions are
+    permanently removed in one operation.
     """
-    result = await quiz_service.delete_quiz(quiz_id)
+    result = await quiz_service.delete_quiz(quiz_id, force)
     return result

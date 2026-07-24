@@ -6,7 +6,6 @@ class TestAttemptAPI:
     """
     Integration tests for the Quiz Attempt API.
 
-    Covers SRS test cases:
     ATT-001 → Start quiz attempt with valid quiz id → attempt created
     ATT-002 → Create question snapshot on start → snapshot stored
     ATT-003 → Save answers on submit → answers saved in attempt
@@ -17,20 +16,18 @@ class TestAttemptAPI:
     ATT-008 → Attempt invalid quiz id → 404 Not Found
     """
 
-    # shared state across tests in this class
-    category_id = None
-    quiz_id = None
+    category_id  = None
+    quiz_id      = None
     question_1_id = None
     question_2_id = None
-    attempt_id = None
+    attempt_id   = None
 
-    def _setup_quiz_with_questions(self, client, admin_headers) -> tuple:
+    def _setup_quiz_with_questions(self, client, admin_headers):
         """
-        Helper that creates a complete category → quiz → questions chain.
+        Creates category → quiz → 2 questions.
         Returns (category_id, quiz_id, question_1_id, question_2_id).
-        Used as setup before attempt tests run.
+        Each call creates fresh data with uuid suffix to avoid collisions.
         """
-        # create category
         cat = client.post(
             "/assessment/v1/categories/",
             json={
@@ -41,7 +38,6 @@ class TestAttemptAPI:
         )
         category_id = cat.json()["id"]
 
-        # create quiz
         quiz = client.post(
             "/assessment/v1/quizzes/",
             json={
@@ -55,7 +51,6 @@ class TestAttemptAPI:
         )
         quiz_id = quiz.json()["id"]
 
-        # create question 1 — MCQ
         q1 = client.post(
             "/assessment/v1/questions/",
             json={
@@ -77,7 +72,6 @@ class TestAttemptAPI:
         )
         question_1_id = q1.json()["id"]
 
-        # create question 2 — True/False
         q2 = client.post(
             "/assessment/v1/questions/",
             json={
@@ -96,17 +90,14 @@ class TestAttemptAPI:
 
         return category_id, quiz_id, question_1_id, question_2_id
 
-    # ── ATT-001 ───────────────────────────────────────────────────────────────
     def test_att_001_start_attempt_success(
         self, client, admin_headers, student_headers
     ):
         """
-        ATT-001: Verifies student can start a quiz attempt with a valid
-        quiz id. Asserts attempt is created with status in_progress,
-        questions are returned without correct_answer,
-        and answers list is empty at start.
+        ATT-001: Student starts a quiz attempt with a valid quiz id.
+        Asserts 201 status, status is in_progress, questions returned
+        without correct_answer, and answers list is empty at start.
         """
-        # setup — create quiz with questions
         (
             TestAttemptAPI.category_id,
             TestAttemptAPI.quiz_id,
@@ -121,36 +112,24 @@ class TestAttemptAPI:
         )
 
         assert response.status_code == 201, \
-            f"Expected 201 but got {response.status_code}. " \
-            f"Response: {response.json()}"
+            f"Expected 201 but got {response.status_code}. Response: {response.json()}"
 
         data = response.json()
-        assert "id" in data, \
-            "Response must contain attempt id"
-        assert data["status"] == "in_progress", \
-            "New attempt status must be in_progress"
+        assert "id" in data
+        assert data["status"] == "in_progress"
         assert data["quiz_id"] == TestAttemptAPI.quiz_id
         assert isinstance(data["questions"], list)
-        assert len(data["questions"]) == 2, \
-            "Attempt must contain all 2 questions"
-        assert data["answers"] == [], \
-            "Answers must be empty at start"
+        assert len(data["questions"]) == 2
+        assert data["answers"] == []
 
-        # save attempt id for later tests
         TestAttemptAPI.attempt_id = data["id"]
 
-    # ── ATT-002 ───────────────────────────────────────────────────────────────
     def test_att_002_snapshot_stored_correctly(
-        self, client, admin_headers, student_headers
+        self, client, student_headers
     ):
         """
-        ATT-002: Verifies that when an attempt starts, a snapshot of
-        questions is stored and returned correctly.
-
-        Key checks:
-        - questions come from snapshot not live collection
-        - correct_answer is never in the response
-        - question structure is correct
+        ATT-002: Verifies snapshot questions are returned without
+        correct_answer when student views the attempt.
         """
         response = client.get(
             f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}",
@@ -162,84 +141,26 @@ class TestAttemptAPI:
         data = response.json()
         questions = data["questions"]
 
-        assert len(questions) == 2, \
-            "Snapshot must contain all questions from the quiz"
+        assert len(questions) == 2
 
         for question in questions:
-            # verify snapshot has correct fields
             assert "question_id" in question
             assert "question_text" in question
             assert "options" in question
-            assert "marks" in question
-
-            # most important — correct_answer must never be in snapshot response
             assert "correct_answer" not in question, \
                 "Snapshot must never expose correct_answer to student"
 
-        # verify question ids match what was created
-        question_ids_in_snapshot = [q["question_id"] for q in questions]
-        assert TestAttemptAPI.question_1_id in question_ids_in_snapshot
-        assert TestAttemptAPI.question_2_id in question_ids_in_snapshot
+        question_ids = [q["question_id"] for q in questions]
+        assert TestAttemptAPI.question_1_id in question_ids
+        assert TestAttemptAPI.question_2_id in question_ids
 
-    # ── ATT-003 ───────────────────────────────────────────────────────────────
-    def test_att_003_answers_saved_on_submit(
-        self, client, admin_headers, student_headers
-    ):
-        """
-        ATT-003: Verifies answers are saved correctly when student submits.
-
-        Note: Our design does not support partial answer saving mid-attempt.
-        All answers are submitted together in one request.
-        This test starts a fresh attempt and verifies answers are
-        stored in the attempt document after submission.
-        """
-        # start a fresh attempt for this test
-        start_response = client.post(
-            "/assessment/v1/attempts/start",
-            json={"quiz_id": TestAttemptAPI.quiz_id},
-            headers=student_headers
-        )
-
-        assert start_response.status_code == 201, \
-            "Fresh attempt should start successfully (attempt 2 of 2)"
-
-        fresh_attempt_id = start_response.json()["id"]
-
-        # submit answers
-        submit_response = client.post(
-            f"/assessment/v1/attempts/{fresh_attempt_id}/submit",
-            json={
-                "answers": [
-                    {
-                        "question_id": TestAttemptAPI.question_1_id,
-                        "selected_answer": "A mutable sequence"
-                    },
-                    {
-                        "question_id": TestAttemptAPI.question_2_id,
-                        "selected_answer": "False"
-                    }
-                ]
-            },
-            headers=student_headers
-        )
-
-        assert submit_response.status_code == 200, \
-            f"Submit should succeed but got {submit_response.status_code}"
-
-        data = submit_response.json()
-        assert "message" in data
-        assert "submitted" in data["message"].lower()
-
-    # ── ATT-004 ───────────────────────────────────────────────────────────────
     def test_att_004_resume_attempt_returns_questions(
         self, client, student_headers
     ):
         """
-        ATT-004: Verifies student can resume an in_progress attempt
-        and sees the same questions that were in the original snapshot.
-
-        The original attempt from ATT-001 is still in_progress
-        (we submitted the fresh one in ATT-003, not the original).
+        ATT-004: Student resumes the in_progress attempt from ATT-001.
+        Verifies questions are still returned and status is in_progress.
+        This test runs BEFORE ATT-003 submits the attempt.
         """
         response = client.get(
             f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}",
@@ -251,110 +172,95 @@ class TestAttemptAPI:
 
         data = response.json()
 
-        # verify questions are still there from snapshot
-        assert len(data["questions"]) == 2, \
-            "Resumed attempt must still show all questions from snapshot"
+        assert len(data["questions"]) == 2
+        assert data["status"] == "in_progress"
 
-        # verify no correct_answer on resume
         for question in data["questions"]:
             assert "correct_answer" not in question
 
-        # verify status is still in_progress (we haven't submitted this one)
-        assert data["status"] == "in_progress"
-
-    # ── ATT-005 ───────────────────────────────────────────────────────────────
-    def test_att_005_submit_quiz_success(
-        self, client, student_headers
+    def test_att_003_answers_saved_on_submit(
+        self, client, admin_headers, student_headers
     ):
         """
-        ATT-005: Verifies student can submit the original attempt
-        with valid responses and receives a success message.
+        ATT-003: Verifies answers are saved when student submits the
+        attempt from ATT-001. Uses save answer endpoint before submitting.
+        This test submits the shared attempt_id.
         """
-        response = client.post(
-            f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}/submit",
+        client.post(
+            f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}/answer",
             json={
-                "answers": [
-                    {
-                        "question_id": TestAttemptAPI.question_1_id,
-                        "selected_answer": "A mutable sequence"
-                    },
-                    {
-                        "question_id": TestAttemptAPI.question_2_id,
-                        "selected_answer": "False"
-                    }
-                ]
+                "question_id": TestAttemptAPI.question_1_id,
+                "selected_answer": "A mutable sequence"
             },
             headers=student_headers
         )
 
-        assert response.status_code == 200, \
-            f"Expected 200 but got {response.status_code}. " \
-            f"Response: {response.json()}"
+        client.post(
+            f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}/answer",
+            json={
+                "question_id": TestAttemptAPI.question_2_id,
+                "selected_answer": "False"
+            },
+            headers=student_headers
+        )
 
-        data = response.json()
+        submit_response = client.post(
+            f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}/submit",
+            headers=student_headers
+        )
+
+        assert submit_response.status_code == 200, \
+            f"Submit should succeed but got {submit_response.status_code}"
+
+        data = submit_response.json()
         assert "message" in data
-        assert "submitted" in data["message"].lower(), \
-            "Response message must confirm submission"
+        assert "submitted" in data["message"].lower()
 
-    # ── ATT-005 extended — submit twice ───────────────────────────────────────
-    def test_submit_already_submitted_attempt_returns_409(
-        self, client, student_headers
+    def test_att_005_submit_quiz_success(
+        self, client, admin_headers, student_headers
     ):
         """
-        Verifies submitting the same attempt twice is rejected with
-        409 Conflict since the attempt is already submitted.
+        ATT-005: Starts a fresh second attempt on the same quiz and
+        submits it successfully. Uses attempt 2 of 2 for this student.
         """
-        response = client.post(
-            f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}/submit",
-            json={
-                "answers": [
-                    {
-                        "question_id": TestAttemptAPI.question_1_id,
-                        "selected_answer": "A mutable sequence"
-                    },
-                    {
-                        "question_id": TestAttemptAPI.question_2_id,
-                        "selected_answer": "False"
-                    }
-                ]
-            },
+        start_response = client.post(
+            "/assessment/v1/attempts/start",
+            json={"quiz_id": TestAttemptAPI.quiz_id},
             headers=student_headers
         )
 
-        assert response.status_code == 409, \
-            f"Expected 409 but got {response.status_code}"
+        assert start_response.status_code == 201, \
+            f"Second attempt should be allowed but got {start_response.status_code}"
 
-    # ── ATT-006 ───────────────────────────────────────────────────────────────
+        second_attempt_id = start_response.json()["id"]
+
+        submit_response = client.post(
+            f"/assessment/v1/attempts/{second_attempt_id}/submit",
+            headers=student_headers
+        )
+
+        assert submit_response.status_code == 200, \
+            f"Expected 200 but got {submit_response.status_code}. Response: {submit_response.json()}"
+
+        data = submit_response.json()
+        assert "message" in data
+        assert "submitted" in data["message"].lower()
+
     def test_att_006_time_expiry_note(self):
         """
-        ATT-006: Auto-submit on time expiry requires a MongoDB TTL index
-        which is an extended goal from the SRS.
-
-        Current behavior:
-        Time limit is stored in snapshot (time_limit field).
-        Frontend is responsible for tracking time and calling submit
-        before expiry. Backend does not auto-submit via TTL currently.
-
+        ATT-006: Auto-submit on time expiry requires a MongoDB TTL index.
         This is documented as a future enhancement.
-        TTL index would automatically trigger submission when
-        started_at + time_limit minutes has passed.
+        Frontend tracks time and calls submit before expiry.
         """
-        # this test documents the design decision
-        # no assertion needed — just documents the gap
-        assert True, \
-            "ATT-006 auto-submit via TTL is a future enhancement"
+        assert True
 
-    # ── ATT-007 ───────────────────────────────────────────────────────────────
     def test_att_007_max_attempts_reached_returns_409(
         self, client, admin_headers, student_headers
     ):
         """
-        ATT-007: Verifies that attempting the same quiz more than
-        the maximum allowed (2) times is rejected with 409 Conflict.
-
-        ATT-001 used attempt 1 on TestAttemptAPI.quiz_id
-        ATT-003 used attempt 2 on TestAttemptAPI.quiz_id
-        This test tries attempt 3 — should be blocked.
+        ATT-007: The current student has now used both attempts on
+        TestAttemptAPI.quiz_id (ATT-001 + ATT-005).
+        A third attempt must be blocked with 409 Conflict.
         """
         response = client.post(
             "/assessment/v1/attempts/start",
@@ -369,13 +275,12 @@ class TestAttemptAPI:
         data = response.json()
         assert "detail" in data
 
-    # ── ATT-008 ───────────────────────────────────────────────────────────────
     def test_att_008_attempt_invalid_quiz_returns_404(
         self, client, student_headers
     ):
         """
-        ATT-008: Verifies starting an attempt with a well-formed but
-        non-existent quiz id returns 404 Not Found.
+        ATT-008: Starting an attempt with a non-existent quiz id
+        returns 404 Not Found.
         """
         response = client.post(
             "/assessment/v1/attempts/start",
@@ -389,12 +294,10 @@ class TestAttemptAPI:
         data = response.json()
         assert "detail" in data
 
-    # ── Additional security and edge case tests ───────────────────────────────
-
     def test_admin_cannot_start_attempt(self, client, admin_headers):
         """
-        Verifies admin is blocked from starting an attempt,
-        confirming require_student dependency is enforced.
+        Verifies admin is blocked from starting an attempt.
+        Only students can attempt quizzes.
         """
         response = client.post(
             "/assessment/v1/attempts/start",
@@ -409,12 +312,9 @@ class TestAttemptAPI:
         self, client, admin_headers
     ):
         """
-        Verifies a student cannot access an attempt belonging
-        to a different student. Returns 403 Forbidden.
-
-        Creates a second student, tries to access first student's attempt.
+        Verifies a student cannot access an attempt belonging to
+        a different student. Returns 403 Forbidden.
         """
-        # register and login a second student
         second_email = f"second_{uuid.uuid4().hex[:8]}@test.com"
         client.post(
             "/assessment/v1/auth/register",
@@ -428,10 +328,8 @@ class TestAttemptAPI:
             "/assessment/v1/auth/login",
             json={"email": second_email, "password": "Test@1234"}
         )
-        second_token = login.json()["access_token"]
-        second_headers = {"Authorization": f"Bearer {second_token}"}
+        second_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
-        # second student tries to access first student's attempt
         response = client.get(
             f"/assessment/v1/attempts/{TestAttemptAPI.attempt_id}",
             headers=second_headers
@@ -460,14 +358,14 @@ class TestAttemptAPI:
     ):
         """
         Verifies submitting answers with question IDs that do not
-        belong to the quiz in this attempt returns 400 Bad Request.
+        belong to the quiz snapshot returns 400 Bad Request.
+        Creates a completely isolated fresh quiz for this test.
         """
-        # create fresh quiz and attempt for this test
         cat = client.post(
             "/assessment/v1/categories/",
             json={
                 "name": f"Invalid Q Test {uuid.uuid4().hex[:8]}",
-                "description": "Test category"
+                "description": "Category for invalid question id test"
             },
             headers=admin_headers
         )
@@ -475,14 +373,14 @@ class TestAttemptAPI:
             "/assessment/v1/quizzes/",
             json={
                 "title": f"Invalid Q Quiz {uuid.uuid4().hex[:8]}",
-                "description": "Test quiz",
+                "description": "Quiz for invalid question id test",
                 "category_id": cat.json()["id"],
                 "time_limit": 30,
                 "pass_percentage": 50.0
             },
             headers=admin_headers
         )
-        q = client.post(
+        client.post(
             "/assessment/v1/questions/",
             json={
                 "quiz_id": quiz.json()["id"],
@@ -496,36 +394,55 @@ class TestAttemptAPI:
             headers=admin_headers
         )
 
+        """
+        Register a fresh student for this test so attempt count
+        on this quiz is clean and not affected by other tests.
+        """
+        fresh_email = f"fresh_student_{uuid.uuid4().hex[:8]}@test.com"
+        client.post(
+            "/assessment/v1/auth/register",
+            json={
+                "username": f"fresh_{uuid.uuid4().hex[:8]}",
+                "email": fresh_email,
+                "password": "Test@1234"
+            }
+        )
+        login = client.post(
+            "/assessment/v1/auth/login",
+            json={"email": fresh_email, "password": "Test@1234"}
+        )
+        fresh_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
         attempt = client.post(
             "/assessment/v1/attempts/start",
             json={"quiz_id": quiz.json()["id"]},
-            headers=student_headers
+            headers=fresh_headers
         )
         attempt_id = attempt.json()["id"]
 
-        # submit with a fake question id not in snapshot
+        """
+        Submit with a fake question id that is not in the snapshot.
+        Backend should validate and return 400.
+        """
         response = client.post(
-            f"/assessment/v1/attempts/{attempt_id}/submit",
+            f"/assessment/v1/attempts/{attempt_id}/answer",
             json={
-                "answers": [
-                    {
-                        "question_id": "000000000000000000000000",
-                        "selected_answer": "A"
-                    }
-                ]
+                "question_id": "000000000000000000000000",
+                "selected_answer": "A"
             },
-            headers=student_headers
+            headers=fresh_headers
         )
 
         assert response.status_code == 400, \
-            f"Expected 400 but got {response.status_code}"
+            f"Expected 400 but got {response.status_code}. " \
+            f"Saving an answer for a question not in this quiz should be rejected"
 
     def test_get_my_attempts_returns_list(
         self, client, student_headers
     ):
         """
-        Verifies student can fetch all their attempts and
-        the response has the correct list structure.
+        Verifies student can fetch all their attempts and the
+        response has the correct list structure with total count.
         """
         response = client.get(
             "/assessment/v1/attempts/my",

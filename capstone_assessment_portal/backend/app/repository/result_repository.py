@@ -5,13 +5,6 @@ from app.constants.attempt_constants import ATTEMPT_STATUS_SUBMITTED
 class ResultRepository:
     """
     Handles all direct MongoDB operations needed for result retrieval.
-
-    IMPORTANT: We do NOT have a separate results collection.
-    Results are stored INSIDE the attempt document on submission.
-    This repository reads from the attempts collection
-    but only fetches submitted attempts.
-
-    storing the same data twice — unnecessary.
     """
 
     def __init__(self):

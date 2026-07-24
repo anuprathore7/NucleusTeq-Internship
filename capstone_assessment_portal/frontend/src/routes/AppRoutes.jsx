@@ -1,103 +1,79 @@
-/**
- * AppRoutes
- *
- * Defines all application routes.
- * Public routes are accessible only to guests.
- * Admin routes require admin authentication.
- * Student routes require student authentication.
- */
-
 import { Routes, Route, Navigate } from "react-router-dom"
 
-import Login from "../pages/auth/Login"
+import { useAuth }   from "../context/AuthContext"
+import { ROUTES }    from "../utils/constants"
+
+import Spinner       from "../components/common/Spinner"
+import PublicRoute   from "./PublicRoute"
+import AdminRoute    from "./AdminRoute"
+import StudentRoute  from "./StudentRoute"
+
+import AdminLayout   from "../components/layout/AdminLayout"
+import StudentLayout from "../components/layout/StudentLayout"
+
+import Login    from "../pages/auth/Login"
 import Register from "../pages/auth/Register"
 
-import Spinner from "../components/common/Spinner"
+import AdminDashboard  from "../pages/admin/Dashboard"
+import AdminCategories from "../pages/admin/Categories"
+import AdminQuizzes    from "../pages/admin/Quizzes"
+import AdminQuestions  from "../pages/admin/Questions"
+import AdminStudents   from "../pages/admin/Students"
+import AdminResults    from "../pages/admin/Results"
 
-import { useAuth } from "../context/AuthContext"
-
-import PublicRoute from "./PublicRoute"
-import AdminRoute from "./AdminRoute"
-import StudentRoute from "./StudentRoute"
-
-import { ROUTES } from "../utils/constants"
-
-const AdminDashboard = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50">
-    <p className="text-slate-500 text-sm">
-      Admin Dashboard — Coming next
-    </p>
-  </div>
-)
-
-const StudentDashboard = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-50">
-    <p className="text-slate-500 text-sm">
-      Student Dashboard — Coming next
-    </p>
-  </div>
-)
+import StudentDashboard  from "../pages/student/Dashboard"
+import StudentCategories from "../pages/student/Categories"
+import StudentQuizList   from "../pages/student/QuizList"
+import QuizAttempt       from "../pages/student/QuizAttempt"
+import StudentResult     from "../pages/student/Result"
+import StudentHistory    from "../pages/student/History"
 
 const AppRoutes = () => {
-  const { user, isLoading } = useAuth()
 
-  if (isLoading) {
-    return <Spinner fullPage />
-  }
+  const { isLoading } = useAuth()
+
+  if (isLoading) return <Spinner fullPage />
 
   return (
     <Routes>
 
+      <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+
+      <Route path={ROUTES.LOGIN}    element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path={ROUTES.REGISTER} element={<PublicRoute><Register /></PublicRoute>} />
+
+      {/** Admin routes inside layout */}
+      <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+        <Route path="dashboard"  element={<AdminDashboard />} />
+        <Route path="categories" element={<AdminCategories />} />
+        <Route path="quizzes"    element={<AdminQuizzes />} />
+        <Route path="questions"  element={<AdminQuestions />} />
+        <Route path="students"   element={<AdminStudents />} />
+        <Route path="results"    element={<AdminResults />} />
+      </Route>
+
+      {/** Student routes inside layout */}
+      <Route path="/student" element={<StudentRoute><StudentLayout /></StudentRoute>}>
+        <Route path="dashboard"  element={<StudentDashboard />} />
+        <Route path="categories" element={<StudentCategories />} />
+        <Route path="quizzes"    element={<StudentQuizList />} />
+        <Route path="history"    element={<StudentHistory />} />
+      </Route>
+
+      {/**
+       * Quiz attempt and result are OUTSIDE the student layout
+       * because they use a full-screen design without the sidebar.
+       */}
       <Route
-        path="/"
-        element={
-          <Navigate
-            to={user ? ROUTES.LOGIN : ROUTES.LOGIN}
-            replace
-          />
-        }
+        path="/student/attempt/:attemptId"
+        element={<StudentRoute><QuizAttempt /></StudentRoute>}
+      />
+      <Route
+        path="/student/result/:attemptId"
+        element={<StudentRoute><StudentResult /></StudentRoute>}
       />
 
-      <Route
-        path={ROUTES.LOGIN}
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-
-      <Route
-        path={ROUTES.REGISTER}
-        element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        }
-      />
-
-      <Route
-        path={ROUTES.ADMIN_DASHBOARD}
-        element={
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        }
-      />
-
-      <Route
-        path={ROUTES.STUDENT_DASHBOARD}
-        element={
-          <StudentRoute>
-            <StudentDashboard />
-          </StudentRoute>
-        }
-      />
-
-      <Route
-        path="*"
-        element={<Navigate to={ROUTES.LOGIN} replace />}
-      />
+      <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
 
     </Routes>
   )

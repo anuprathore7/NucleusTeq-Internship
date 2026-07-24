@@ -7,7 +7,7 @@ class TestQuizAPI:
     Integration tests for the Quiz API.
     """
 
-    # shared state across test methods in this class
+  
     category_id = None
     quiz_id = None
     quiz_title = None

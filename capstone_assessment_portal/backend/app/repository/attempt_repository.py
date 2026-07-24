@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from app.config.database import database
 from app.exceptions.attempt_exceptions import AttemptInvalidIdException
+from app.constants.attempt_constants import ATTEMPT_STATUS_IN_PROGRESS
 
 
 class AttemptRepository:
@@ -136,4 +137,27 @@ class AttemptRepository:
             {"$set": update_data},
             return_document=True
         )
+        return result
+    async def find_in_progress_attempt(self, student_id: str, quiz_id: str) -> dict | None:
+        """
+        Find an existing in_progress attempt for this student and quiz, if any.
+        Used to resume an attempt instead of creating a duplicate one.
+        """
+        result = await self.collection.find_one({
+            "student_id": student_id,
+            "quiz_id": quiz_id,
+            "status": ATTEMPT_STATUS_IN_PROGRESS
+        })
+        return result
+    
+    async def count_in_progress_by_quiz_ids(self, quiz_ids: list[str]) -> int:
+        """
+        Count in-progress attempts across a set of quiz IDs.
+        Used as a safety guard before cascade-deleting a category/quiz,
+        so a student mid-quiz isn't affected without admin's explicit override.
+        """
+        result = await self.collection.count_documents({
+            "quiz_id": {"$in": quiz_ids},
+            "status": ATTEMPT_STATUS_IN_PROGRESS
+        })
         return result
